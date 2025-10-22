@@ -1,0 +1,152 @@
+[
+  {
+    "firstName": "John",
+    "lastName": "Mthembu",
+    "phone": "+27 82 123 4567",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Mary",
+    "lastName": "Sithole",
+    "phone": "+27 83 234 5678",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Peter",
+    "lastName": "Nkomo",
+    "phone": "+27 84 345 6789",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Sarah",
+    "lastName": "Dlamini",
+    "phone": "+27 85 456 7890",
+    "status": "INACTIVE"
+  },
+  {
+    "firstName": "David",
+    "lastName": "Mokoena",
+    "phone": "+27 86 567 8901",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Grace",
+    "lastName": "Mahlangu",
+    "phone": "+27 87 678 9012",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Michael",
+    "lastName": "Zwane",
+    "phone": "+27 88 789 0123",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Linda",
+    "lastName": "Khumalo",
+    "phone": "+27 89 890 1234",
+    "status": "INACTIVE"
+  },
+  {
+    "firstName": "James",
+    "lastName": "Sibeko",
+    "phone": "+27 82 111 2222",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Patricia",
+    "lastName": "Molefe",
+    "phone": "+27 83 222 3333",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Robert",
+    "lastName": "Maseko",
+    "phone": "+27 84 333 4444",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Elizabeth",
+    "lastName": "Radebe",
+    "phone": "+27 85 444 5555",
+    "status": "INACTIVE"
+  },
+  {
+    "firstName": "Thomas",
+    "lastName": "Ngcobo",
+    "phone": "+27 86 555 6666",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Johan",
+    "lastName": "Steyn",
+    "phone": "+27 84 765 4321",
+    "status": "INACTIVE"
+  },
+  {
+    "firstName": "Susan",
+    "lastName": "Adams",
+    "phone": "+27 85 654 3210",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Abdullah",
+    "lastName": "Isaacs",
+    "phone": "+27 82 345 6789",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Fatima",
+    "lastName": "Hendricks",
+    "phone": "+27 83 456 7890",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Mohamed",
+    "lastName": "Davids",
+    "phone": "+27 84 567 8901",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Aisha",
+    "lastName": "Salie",
+    "phone": "+27 85 678 9012",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Yusuf",
+    "lastName": "Abrahams",
+    "phone": "+27 86 789 0123",
+    "status": "INACTIVE"
+  },
+  {
+    "firstName": "Khadija",
+    "lastName": "Petersen",
+    "phone": "+27 87 890 1234",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Ebrahim",
+    "lastName": "Jacobs",
+    "phone": "+27 88 901 2345",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Zahra",
+    "lastName": "Williams",
+    "phone": "+27 89 012 3456",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Omar",
+    "lastName": "Samuels",
+    "phone": "+27 82 123 4567",
+    "status": "ACTIVE"
+  },
+  {
+    "firstName": "Amina",
+    "lastName": "Daniels",
+    "phone": "+27 83 234 5678",
+    "status": "INACTIVE"
+  }
+]

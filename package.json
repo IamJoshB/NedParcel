@@ -1,0 +1,29 @@
+{
+  "name": "nedparcel",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npx tsc",
+    "dev": "npx tsx watch --experimental-strip-types src/index.ts",
+    "start": "node dist/index.js",
+    "seed": "npx tsx src/seed/test-data.ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.3.1",
+    "js-yaml": "^4.1.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.4.2",
+    "@types/multer": "^2.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.1.6"
+  }
+}

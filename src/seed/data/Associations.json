@@ -1,0 +1,62 @@
+[
+  {
+    "name": "Johannesburg Central Taxi Association",
+    "email": "info@jcta.co.za",
+    "password": "admin123",
+    "contactPerson": "Sarah Ndlovu",
+    "phone": "+27 11 987 6543",
+    "address": {
+      "streetNo": "15",
+      "streetName": "456 Commissioner Street",
+      "city": "Johannesburg",
+      "province": "Gauteng",
+      "suburb": "CBD",
+      "postalCode": "2001"
+    }
+  },
+  {
+    "name": "Paarl Taxi Association",
+    "email": "admin@paarl-taxi.co.za",
+    "password": "paarl123",
+    "contactPerson": "Willem van der Merwe",
+    "phone": "+27 21 872 1234",
+    "address": {
+      "streetNo": "45",
+      "streetName": "Main Road",
+      "city": "Paarl",
+      "province": "Western cape",
+      "suburb": "CBD",
+      "postalCode": "76465"
+    }
+  },
+  {
+    "name": "CATA Long Distance Taxi Association",
+    "email": "info@cata-longdistance.co.za",
+    "password": "cata456",
+    "contactPerson": "Rasheed Adams",
+    "phone": "+27 21 465 7890",
+    "address": {
+      "streetNo": "142",
+      "streetName": "Strand Road",
+      "city": "Cape Town",
+      "province": "Western cape",
+      "suburb": "Strand",
+      "postalCode": "8001"
+    }
+  },
+  {
+    "name": "Louis Trichardt Musina Local & Long Distance Taxi Association",
+    "email": "admin@ltm-taxi.co.za",
+    "password": "ltm789",
+    "contactPerson": "Johannes Ramabulana",
+    "phone": "+27 15 516 1234",
+    "address": {
+      "streetNo": "12",
+      "streetName": "Krogh Street",
+      "city": "Louis Trichardt",
+      "province": "Limpopo",
+      "suburb": "SLouis Trichardtrand",
+      "postalCode": "0920"
+    }
+  }
+]

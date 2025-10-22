@@ -1,0 +1,122 @@
+[
+  {
+    "name": "Greenstone Mall Taxi Rank",
+    "location": "https://share.google/92ifHriG2CfDjxJBc",
+    "address": {
+      "streetNo": "1",
+      "streetName": "Greenstone Hill Road",
+      "city": "Edenvale",
+      "province": "Gauteng",
+      "suburb": "Greenstone Hill",
+      "postalCode": "1609"
+    }
+  },
+  {
+    "name": "MTN Taxi Rank",
+    "location": "https://maps.app.goo.gl/9B7iL9cfd4gMax4CA",
+    "address": {
+      "streetNo": "68",
+      "streetName": "Plein St",
+      "city": "Johannesburg",
+      "province": "Gauteng",
+      "suburb": "Johannesburg",
+      "postalCode": "2000"
+    }
+  },
+  {
+    "name": "Edenvale Taxi Rank",
+    "location": "https://maps.app.goo.gl/yjfyD1ErdDebUuKFA",
+    "address": {
+      "streetNo": "104",
+      "streetName": "Van Riebeeck Ave",
+      "city": "Edenvale",
+      "province": "Gauteng",
+      "suburb": "Lethabong",
+      "postalCode": "1609"
+    }
+  },
+  {
+    "name": "Thembisa Taxi Rank",
+    "location": "https://maps.app.goo.gl/Dd3HZbjvNMcrxRe2A",
+    "address": {
+      "streetNo": "1",
+      "streetName": "Cnr Limpopo St and Benjamin Ntlhane Dr",
+      "city": "Thembisa",
+      "province": "Gauteng",
+      "suburb": "Esangweni",
+      "postalCode": "1632"
+    }
+  },
+  {
+    "name": "Germiston Taxi Rank",
+    "location": "https://maps.app.goo.gl/RcQ38cTVy7Ua9X879",
+    "address": {
+      "streetNo": "1",
+      "streetName": "Park, Driefontein",
+      "city": "Germiston",
+      "province": "Driefontein",
+      "suburb": "Esangweni",
+      "postalCode": "1632"
+    }
+  },
+  {
+    "name": "Thohoyandou Taxi Rank",
+    "location": "https://maps.app.goo.gl/e6SopGv3SWB73GNJ6",
+    "address": {
+      "streetNo": "1",
+      "streetName": "Garden Rte",
+      "city": "Thohoyandou",
+      "province": "Limpopo",
+      "suburb": "Thohoyandou",
+      "postalCode": "0950"
+    }
+  },
+  {
+    "name": "Louis Trichardt CBD Rank",
+    "location": "https://maps.app.goo.gl/2WZPaf3nSnm3AX4K9",
+    "address": {
+      "streetNo": "95",
+      "streetName": "Munnick Street",
+      "city": "Louis Trichardt",
+      "province": "Limpopo",
+      "suburb": "Louis Trichardt",
+      "postalCode": "0920"
+    }
+  },
+  {
+    "name": "Paarl Taxi Rank",
+    "location": "https://share.google/AhhaIebXECymidhKU",
+    "address": {
+      "streetNo": "16",
+      "streetName": "Van Der Lingen",
+      "city": "Paarl",
+      "province": "Western cape",
+      "suburb": "Esterville",
+      "postalCode": "7646"
+    }
+  },
+  {
+    "name": "Cape Town Taxi Rank",
+    "location": "https://share.google/zkjrRdh06RCYsVfbl",
+    "address": {
+      "streetNo": "1",
+      "streetName": "Darling St",
+      "city": "Cape Town",
+      "province": "Western cape",
+      "suburb": "City Centre",
+      "postalCode": "8000"
+    }
+  },
+  {
+    "name": "Masiphumelele Taxi Rank",
+    "location": "https://maps.app.goo.gl/Fc4pYXPR2yT2fPmc8",
+    "address": {
+      "streetNo": "1",
+      "streetName": "Sunnydale Rd",
+      "city": "Cape Town",
+      "province": "Western cape",
+      "suburb": "Sunnydale",
+      "postalCode": "7975"
+    }
+  }
+]

@@ -1,0 +1,328 @@
+[
+  {
+    "accountHolder": "Johannesburg Central Taxi Association",
+    "bankName": "Standard Bank",
+    "accountNumber": "9876543210",
+    "branchCode": "051001"
+  },
+  {
+    "accountHolder": "Paarl Taxi Association",
+    "bankName": "ABSA",
+    "accountNumber": "4567891230",
+    "branchCode": "632005"
+  },
+  {
+    "accountHolder": "CATA Long Distance Taxi Association",
+    "bankName": "FNB",
+    "accountNumber": "7891234560",
+    "branchCode": "201409"
+  },
+  {
+    "accountHolder": "Louis Trichardt Musina Local & Long Distance Taxi Association",
+    "bankName": "Capitec Bank",
+    "accountNumber": "1357924680",
+    "branchCode": "470010"
+  },
+  [
+  {
+    "accountHolder": "Mandla Van Wyk",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7130346883",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Nkosi",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9895616714",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Mokoena",
+    "bankName": "Capitec Bank",
+    "accountNumber": "1576958158",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Ayanda Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "1687803815",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thabo Mbatha",
+    "bankName": "Capitec Bank",
+    "accountNumber": "4909534801",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thuli Ngcobo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "5964204175",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sipho Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7024328059",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thabo Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7592200826",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thabo Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7841795227",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sibusiso Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7704681205",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sibusiso Van Wyk",
+    "bankName": "Capitec Bank",
+    "accountNumber": "5265277215",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thuli Van Wyk",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9759819255",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Ayanda Dlamini",
+    "bankName": "Capitec Bank",
+    "accountNumber": "2672993860",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "3809936510",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sipho Nkosi",
+    "bankName": "Capitec Bank",
+    "accountNumber": "3144780889",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Kabelo Ngcobo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "5768144195",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Zanele Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "6643451807",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Nomsa Mbatha",
+    "bankName": "Capitec Bank",
+    "accountNumber": "8342346006",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Kabelo Khumalo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9020052335",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sipho Khumalo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "2942915315",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thuli Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9859078893",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sibusiso Nkosi",
+    "bankName": "Capitec Bank",
+    "accountNumber": "4039482701",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sibusiso Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7415962994",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thuli Ngcobo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "3827998596",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thabo Mbatha",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9519860123",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thabo Mokoena",
+    "bankName": "Capitec Bank",
+    "accountNumber": "3068159620",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Nomsa Mbatha",
+    "bankName": "Capitec Bank",
+    "accountNumber": "3002655370",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Nkosi",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7348005021",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Mokoena",
+    "bankName": "Capitec Bank",
+    "accountNumber": "6981906136",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Kabelo Pillay",
+    "bankName": "Capitec Bank",
+    "accountNumber": "5949620231",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9163754763",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Zanele Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "5758358523",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Mbatha",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9062963703",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Nomsa Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "2846391477",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Dlamini",
+    "bankName": "Capitec Bank",
+    "accountNumber": "4020063247",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sipho Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "2586778477",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "1770142701",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Naidoo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "4621515739",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Ayanda Nkosi",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9941390696",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Nomsa Mokoena",
+    "bankName": "Capitec Bank",
+    "accountNumber": "3295857570",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Thabo Van Wyk",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7574592604",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Nomsa Mokoena",
+    "bankName": "Capitec Bank",
+    "accountNumber": "8964833892",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sipho Mthembu",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7917832900",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Ngcobo",
+    "bankName": "Capitec Bank",
+    "accountNumber": "9508020608",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Sibusiso Van Wyk",
+    "bankName": "Capitec Bank",
+    "accountNumber": "5555098631",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Pillay",
+    "bankName": "Capitec Bank",
+    "accountNumber": "4183989131",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Lerato Dlamini",
+    "bankName": "Capitec Bank",
+    "accountNumber": "7658085911",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Kabelo Mbatha",
+    "bankName": "Capitec Bank",
+    "accountNumber": "4925393429",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Dlamini",
+    "bankName": "Capitec Bank",
+    "accountNumber": "6584531130",
+    "branchCode": "470010"
+  },
+  {
+    "accountHolder": "Mandla Mokoena",
+    "bankName": "Capitec Bank",
+    "accountNumber": "6505892650",
+    "branchCode": "470010"
+  }
+]
+]
