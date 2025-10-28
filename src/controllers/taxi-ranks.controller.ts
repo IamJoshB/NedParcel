@@ -203,7 +203,13 @@ export const createTaxiRank = async (req: Request, res: Response) => {
   try {
     const taxiRank = new TaxiRank(req.body);
     const savedRank = await taxiRank.save();
-    res.status(201).json(savedRank);
+    const shallow = req.query.shallow === "true";
+    const populated = shallow
+      ? savedRank
+      : await TaxiRank.findById(savedRank._id)
+          .populate({ path: "possibleRoutes", populate: ["fromRank", "toRank"] })
+          .populate({ path: "taxiAssociations", populate: { path: "bankingDetails" } });
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error creating taxi rank", error });
   }
@@ -236,9 +242,12 @@ export const createTaxiRank = async (req: Request, res: Response) => {
 // Get all TaxiRanks
 export const getAllTaxiRanks = async (req: Request, res: Response) => {
   try {
-    const ranks = await TaxiRank.find()
-  .populate("possibleRoutes")
-      .populate("taxiAssociations");
+    const shallow = req.query.shallow === "true";
+    const ranks = shallow
+      ? await TaxiRank.find().populate("possibleRoutes")
+      : await TaxiRank.find()
+          .populate({ path: "possibleRoutes", populate: ["fromRank", "toRank"] })
+          .populate({ path: "taxiAssociations", populate: { path: "bankingDetails" } });
     res.status(200).json(ranks);
   } catch (error) {
     res.status(500).json({ message: "Error getting taxi ranks", error });
@@ -283,12 +292,12 @@ export const getAllTaxiRanks = async (req: Request, res: Response) => {
 // Get a single TaxiRank by ID
 export const getTaxiRankById = async (req: Request, res: Response) => {
   try {
-    const rank = await TaxiRank.findById(req.params.id)
-      .populate({
-        path: "possibleRoutes",
-        populate: ["fromRank", "toRank"],
-      })
-      .populate("taxiAssociations");
+    const shallow = req.query.shallow === "true";
+    const rank = shallow
+      ? await TaxiRank.findById(req.params.id).populate("possibleRoutes").populate("taxiAssociations")
+      : await TaxiRank.findById(req.params.id)
+          .populate({ path: "possibleRoutes", populate: ["fromRank", "toRank"] })
+          .populate({ path: "taxiAssociations", populate: { path: "bankingDetails" } });
     if (!rank) return res.status(404).json({ message: "Taxi rank not found" });
     res.status(200).json(rank);
   } catch (error) {
