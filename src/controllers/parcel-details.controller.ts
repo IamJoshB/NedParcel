@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Parcel from "../models/parcel-details.model";
+import mongoose from "mongoose";
 
 /**
  * @swagger
@@ -57,13 +58,8 @@ import Parcel from "../models/parcel-details.model";
  *         legIndex:
  *           type: integer
  *           example: 0
- *         possibleRoute:
- *           $ref: '#/components/schemas/ObjectId'
  *         status:
  *           $ref: '#/components/schemas/ParcelStatus'
- *         price:
- *           type: number
- *           example: 79.99
  *         notes:
  *           type: string
  *           example: Handle with care.
@@ -83,7 +79,6 @@ import Parcel from "../models/parcel-details.model";
  *         - receiverOtp
  *         - package
  *         - status
- *         - price
  *     CreateParcelRequest:
  *       type: object
  *       properties:
@@ -107,14 +102,10 @@ import Parcel from "../models/parcel-details.model";
  *           required:
  *             - identifier
  *             - type
- *         price:
- *           type: number
  *         trip:
  *           $ref: '#/components/schemas/ObjectId'
  *         legIndex:
  *           type: integer
- *         possibleRoute:
- *           $ref: '#/components/schemas/ObjectId'
  *         notes:
  *           type: string
  *       required:
@@ -124,7 +115,6 @@ import Parcel from "../models/parcel-details.model";
  *         - senderPhone
  *         - receiverPhone
  *         - package
- *         - price
  *     UpdateParcelRequest:
  *       type: object
  *       description: Partial update of a parcel.
@@ -133,10 +123,6 @@ import Parcel from "../models/parcel-details.model";
  *           type: string
  *         receiverPhone:
  *           type: string
- *         possibleRoute:
- *           $ref: '#/components/schemas/ObjectId'
- *         price:
- *           type: number
  *         notes:
  *           type: string
  *     UpdateParcelStatusRequest:
@@ -230,8 +216,7 @@ export const createParcel = async (req: Request, res: Response) => {
     const saved = await parcel.save();
     const deep = req.query.deep === "true";
     const populated = deep
-      ? await Parcel.findById(saved._id)
-          .populate("possibleRoute")
+    ? await Parcel.findById(saved._id)
           .populate("package.type")
           .populate({
             path: "trip",
@@ -278,8 +263,7 @@ export const getAllParcels = async (req: Request, res: Response) => {
   try {
     const deep = req.query.deep === "true";
     const parcels = deep
-      ? await Parcel.find()
-          .populate("possibleRoute")
+    ? await Parcel.find()
           .populate("package.type")
           .populate({
             path: "trip",
@@ -291,8 +275,8 @@ export const getAllParcels = async (req: Request, res: Response) => {
               { path: "route.details", populate: ["fromRank", "toRank"] },
             ],
           })
-      : await Parcel.find()
-          .populate("trip possibleRoute")
+    : await Parcel.find()
+      .populate("trip")
           .populate("package.type");
     res.status(200).json(parcels);
   } catch (error) {
@@ -339,8 +323,7 @@ export const getParcelById = async (req: Request, res: Response) => {
   try {
     const deep = req.query.deep === "true";
     const parcel = deep
-      ? await Parcel.findById(req.params.id)
-          .populate("possibleRoute")
+    ? await Parcel.findById(req.params.id)
           .populate("package.type")
           .populate({
             path: "trip",
@@ -352,8 +335,8 @@ export const getParcelById = async (req: Request, res: Response) => {
               { path: "route.details", populate: ["fromRank", "toRank"] },
             ],
           })
-      : await Parcel.findById(req.params.id)
-          .populate("trip possibleRoute")
+    : await Parcel.findById(req.params.id)
+      .populate("trip")
           .populate("package.type");
     if (!parcel) return res.status(404).json({ message: "Parcel not found" });
     res.status(200).json(parcel);
@@ -412,8 +395,7 @@ export const updateParcel = async (req: Request, res: Response) => {
     if (!updated) return res.status(404).json({ message: "Parcel not found" });
     let parcel: any = updated;
     if (deep) {
-      parcel = await Parcel.findById(updated._id)
-  .populate("possibleRoute")
+  parcel = await Parcel.findById(updated._id)
         .populate("package.type")
         .populate({
           path: "trip",
@@ -584,5 +566,104 @@ export const verifyParcelOtp = async (req: Request, res: Response) => {
     res.status(200).json(parcel);
   } catch (error) {
     res.status(500).json({ message: "Error verifying OTP", error });
+  }
+};
+
+/**
+ * @swagger
+ * /api/parcel-details/move-leg:
+ *   post:
+ *     summary: Move a Parcel to another Trip leg
+ *     description: Updates parcel legIndex (and optionally its trip) to reflect movement between legs.
+ *     tags: [Parcels]
+ *     operationId: moveParcelLeg
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               parcelId:
+ *                 $ref: '#/components/schemas/ObjectId'
+ *               tripId:
+ *                 $ref: '#/components/schemas/ObjectId'
+ *               legIndex:
+ *                 type: integer
+ *                 minimum: 0
+ *             required:
+ *               - parcelId
+ *               - legIndex
+ *     responses:
+ *       200:
+ *         description: Parcel leg updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Parcel'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Parcel or Trip not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+export const moveParcelLeg = async (req: Request, res: Response) => {
+  try {
+    const { parcelId, tripId, legIndex } = req.body;
+    if (legIndex === undefined || legIndex < 0) {
+      return res.status(400).json({ message: "Invalid legIndex" });
+    }
+    const parcel = await Parcel.findById(parcelId);
+    if (!parcel) return res.status(404).json({ message: "Parcel not found" });
+    let trip;
+    if (tripId) {
+      trip = await mongoose.model("Trip").findById(tripId);
+      if (!trip) return res.status(404).json({ message: "Trip not found" });
+      if (!Array.isArray((trip as any).route) || !(trip as any).route[legIndex]) {
+        return res.status(400).json({ message: "legIndex out of bounds for target trip" });
+      }
+      parcel.trip = trip._id;
+    } else if (parcel.trip) {
+      trip = await mongoose.model("Trip").findById(parcel.trip);
+      if (!trip) return res.status(404).json({ message: "Linked trip not found" });
+      if (!Array.isArray((trip as any).route) || !(trip as any).route[legIndex]) {
+        return res.status(400).json({ message: "legIndex out of bounds for current trip" });
+      }
+    } else {
+      return res.status(400).json({ message: "Parcel has no trip and no tripId provided" });
+    }
+    parcel.legIndex = legIndex;
+    await parcel.save();
+    const deep = req.query.deep === "true";
+    const populated = deep
+      ? await Parcel.findById(parcel._id)
+          .populate("package.type")
+          .populate({
+            path: "trip",
+            populate: [
+              "origin",
+              "destination",
+              { path: "route.driver" },
+              { path: "route.association" },
+              { path: "route.details", populate: ["fromRank", "toRank"] },
+            ],
+          })
+      : parcel;
+    res.status(200).json(populated);
+  } catch (error) {
+    res.status(500).json({ message: "Error moving parcel leg", error });
   }
 };
