@@ -10,7 +10,7 @@ NedParcel is an Express + TypeScript + Mongoose REST API for managing taxi trans
 - Driver: Can link multiple ranks, an association, and banking details. Handles document/image uploads.
 - Marshall: Linked to a single rank and optional association.
 - Trip: Multi-leg journey with originRank, destinationRank, fullDistance, and an array of route legs. Each leg links a driver and a PossibleRoute.
-- Parcel: Shipped item that embeds a package (type + identifier) and can optionally attach to a specific trip leg (trip + legIndex + possibleRoute).
+- Parcel: Shipped item that embeds a package (type + identifier) and can optionally attach to a specific trip leg (trip + legIndex + possibleRoute). Parcel no longer stores origin/destination ranks directly; derive these from its linked Trip when needed.
 - PackageType: Lookup entity for parcel package types.
 
 ## Population Depth Strategy
@@ -19,7 +19,7 @@ To balance payload size vs relational completeness, several endpoints accept que
 ### Query Parameters
 - `?deep=true` (Trips & Parcels): Returns full nested population.
   - Trips deep mode populates: originRank, destinationRank, route.driver, route.association, route.details (with fromRank, toRank).
-  - Parcels deep mode populates: originRank, destinationRank, possibleRoute (with fromRank, toRank), package.type, and trip with full deep trip population (including nested route legs).
+  - Parcels deep mode populates: possibleRoute (with fromRank, toRank), package.type, and trip with full deep trip population (including nested route legs). Origin/destination may be inferred from trip (first/last leg).
 - `?shallow=true` (Taxi Ranks): Returns reduced population.
   - Shallow: `possibleRoutes` (no nested rank documents) + `taxiAssociations` (without bankingDetails).
   - Deep (default): `possibleRoutes` with fromRank & toRank, and `taxiAssociations` with their bankingDetails.
