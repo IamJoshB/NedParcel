@@ -200,7 +200,20 @@ export const createTrip = async (req: Request, res: Response) => {
   try {
     const trip = new Trip(req.body);
     const savedTrip = await trip.save();
-    res.status(201).json(savedTrip);
+    const deep = req.query.deep === "true";
+    const populated = deep
+      ? await Trip.findById(savedTrip._id)
+          .populate("origin destination")
+          .populate({
+            path: "route.driver",
+          })
+          .populate({
+            path: "route.details",
+            populate: ["fromRank", "toRank"],
+          })
+          .populate({ path: "route.association" })
+      : savedTrip;
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error creating trip", error });
   }
@@ -230,9 +243,20 @@ export const createTrip = async (req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-export const getTrips = async (_req: Request, res: Response) => {
+export const getTrips = async (req: Request, res: Response) => {
   try {
-  const trips = await Trip.find().populate("route.driver route.details");
+    const deep = req.query.deep === "true";
+    let query = Trip.find();
+    if (deep) {
+      query = query
+        .populate("origin destination")
+        .populate({ path: "route.driver" })
+        .populate({ path: "route.association" })
+        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
+    } else {
+      query = query.populate("route.driver route.details");
+    }
+    const trips = await query;
     res.status(200).json(trips);
   } catch (error) {
     res.status(500).json({ message: "Error getting trips", error });
@@ -276,9 +300,18 @@ export const getTrips = async (_req: Request, res: Response) => {
  */
 export const getTripById = async (req: Request, res: Response) => {
   try {
-    const trip = await Trip.findById(req.params.id).populate(
-  "route.driver route.details"
-    );
+    const deep = req.query.deep === "true";
+    let query = Trip.findById(req.params.id);
+    if (deep) {
+      query = query
+        .populate("origin destination")
+        .populate({ path: "route.driver" })
+        .populate({ path: "route.association" })
+        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
+    } else {
+      query = query.populate("route.driver route.details");
+    }
+    const trip = await query;
     if (!trip) return res.status(404).json({ message: "Trip not found" });
     res.status(200).json(trip);
   } catch (error) {
@@ -335,12 +368,21 @@ export const getTripById = async (req: Request, res: Response) => {
  */
 export const updateTrip = async (req: Request, res: Response) => {
   try {
+    const deep = req.query.deep === "true";
     const updatedTrip = await Trip.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
     if (!updatedTrip)
       return res.status(404).json({ message: "Trip not found" });
-    res.status(200).json(updatedTrip);
+    let trip: any = updatedTrip;
+    if (deep) {
+      trip = await Trip.findById(updatedTrip._id)
+        .populate("origin destination")
+        .populate({ path: "route.driver" })
+        .populate({ path: "route.association" })
+        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
+    }
+    res.status(200).json(trip);
   } catch (error) {
     res.status(500).json({ message: "Error updating trip", error });
   }
@@ -446,9 +488,18 @@ export const linkDriverAndRoute = async (req: Request, res: Response) => {
   trip.route[legIndex].details = new mongoose.Types.ObjectId(routeId);
 
     await trip.save();
+    const deep = req.query.deep === "true";
+    let responseTrip: any = trip;
+    if (deep) {
+      responseTrip = await Trip.findById(trip._id)
+        .populate("origin destination")
+        .populate({ path: "route.driver" })
+        .populate({ path: "route.association" })
+        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
+    }
     res
       .status(200)
-      .json({ message: "Driver and Route linked successfully", trip });
+      .json({ message: "Driver and Route linked successfully", trip: responseTrip });
   } catch (error) {
     res.status(500).json({ message: "Error linking driver and route", error });
   }
@@ -508,9 +559,18 @@ export const unlinkDriverAndRoute = async (req: Request, res: Response) => {
   trip.route[legIndex].details = undefined;
 
     await trip.save();
+    const deep = req.query.deep === "true";
+    let responseTrip: any = trip;
+    if (deep) {
+      responseTrip = await Trip.findById(trip._id)
+        .populate("origin destination")
+        .populate({ path: "route.driver" })
+        .populate({ path: "route.association" })
+        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
+    }
     res
       .status(200)
-      .json({ message: "Driver and Route unlinked successfully", trip });
+      .json({ message: "Driver and Route unlinked successfully", trip: responseTrip });
   } catch (error) {
     res
       .status(500)
