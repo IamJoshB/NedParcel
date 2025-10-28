@@ -157,7 +157,10 @@ export const createMarshall = async (req: Request, res: Response) => {
   try {
     const marshall = new Marshall(req.body);
     const savedMarshall = await marshall.save();
-    res.status(201).json(savedMarshall);
+    const populated = await Marshall.findById(savedMarshall._id)
+      .populate("linkedRank")
+      .populate("taxiAssociation");
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error creating marshall", error });
   }
@@ -298,7 +301,10 @@ export const updateMarshall = async (req: Request, res: Response) => {
     if (!updatedMarshall) {
       return res.status(404).json({ message: "Marshall not found" });
     }
-    res.status(200).json(updatedMarshall);
+    const populated = await Marshall.findById(updatedMarshall._id)
+      .populate("linkedRank")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error updating marshall", error });
   }
@@ -402,7 +408,10 @@ export const linkTaxiRank = async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ message: "Marshall not found" });
     }
-    res.status(200).json(updated);
+    const populated = await Marshall.findById(updated._id)
+      .populate("linkedRank")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error linking TaxiRank", error });
   }
@@ -454,7 +463,10 @@ export const unlinkTaxiRank = async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ message: "Marshall not found" });
     }
-    res.status(200).json(updated);
+    const populated = await Marshall.findById(updated._id)
+      .populate("linkedRank")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error unlinking TaxiRank", error });
   }
@@ -506,7 +518,10 @@ export const linkTaxiAssociation = async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ message: "Marshall not found" });
     }
-    res.status(200).json(updated);
+    const populated = await Marshall.findById(updated._id)
+      .populate("linkedRank")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error linking TaxiAssociation", error });
   }
@@ -558,7 +573,10 @@ export const unlinkTaxiAssociation = async (req: Request, res: Response) => {
     if (!updated) {
       return res.status(404).json({ message: "Marshall not found" });
     }
-    res.status(200).json(updated);
+    const populated = await Marshall.findById(updated._id)
+      .populate("linkedRank")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error unlinking TaxiAssociation", error });
   }
