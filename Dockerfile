@@ -20,7 +20,7 @@ WORKDIR /app
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
-RUN npm install --omit=dev
+
 
 # Change ownership and switch to non-root user
 RUN chown -R appuser:appgroup /app
@@ -28,4 +28,6 @@ USER appuser
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+RUN npm install --only=production
+
+CMD ["node", "dist/index.js"]
