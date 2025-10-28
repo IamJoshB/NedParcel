@@ -84,10 +84,10 @@ import mongoose from "mongoose";
  *                 type: number
  *               driverSplit:
  *                 type: number
-  *               driverId:
-  *                 $ref: '#/components/schemas/ObjectId'
-  *               routeId:
-  *                 $ref: '#/components/schemas/ObjectId'
+ *               driverId:
+ *                 $ref: '#/components/schemas/ObjectId'
+ *               routeId:
+ *                 $ref: '#/components/schemas/ObjectId'
  *             required:
  *               - leg
  *         origin:
@@ -96,8 +96,8 @@ import mongoose from "mongoose";
  *           $ref: '#/components/schemas/ObjectId'
  *               - associationSplit
  *               - driverSplit
-  *               - driverId
-  *               - routeId
+ *               - driverId
+ *               - routeId
  *       required:
  *         - price
  *         - route
@@ -111,27 +111,27 @@ import mongoose from "mongoose";
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/TripLeg'
-  *         legs:
-  *           type: array
-  *           description: Optional replacement leg definitions with driverId/routeId.
-  *             properties:
+ *         legs:
+ *           type: array
+ *           description: Optional replacement leg definitions with driverId/routeId.
+ *             properties:
  *         - price
  *         - origin
  *         - destination
-  *               associationSplit:
-  *                 type: number
-  *               driverSplit:
-  *                 type: number
-  *               driverId:
-  *                 $ref: '#/components/schemas/ObjectId'
-  *               routeId:
-  *                 $ref: '#/components/schemas/ObjectId'
-  *             required:
-  *               - leg
-  *               - associationSplit
-  *               - driverSplit
-  *               - driverId
-  *               - routeId
+ *               associationSplit:
+ *                 type: number
+ *               driverSplit:
+ *                 type: number
+ *               driverId:
+ *                 $ref: '#/components/schemas/ObjectId'
+ *               routeId:
+ *                 $ref: '#/components/schemas/ObjectId'
+ *             required:
+ *               - leg
+ *               - associationSplit
+ *               - driverSplit
+ *               - driverId
+ *               - routeId
  *     LinkDriverAndRouteRequest:
  *       type: object
  *       properties:
@@ -246,7 +246,10 @@ export const createTrip = async (req: Request, res: Response) => {
     if ((!effectiveRoute || !effectiveRoute.length) && origin && destination) {
       // BFS over PossibleRoute graph
       const PossibleRoute = mongoose.model("PossibleRoute");
-      const edges = await PossibleRoute.find({ fromRank: { $exists: true }, toRank: { $exists: true } })
+      const edges = await PossibleRoute.find({
+        fromRank: { $exists: true },
+        toRank: { $exists: true },
+      })
         .select("fromRank toRank distance farePrice")
         .lean();
       const adjacency: Record<string, string[]> = {};
@@ -263,7 +266,10 @@ export const createTrip = async (req: Request, res: Response) => {
       let found = false;
       while (queue.length && !found) {
         const current = queue.shift()!;
-        if (current === goal) { found = true; break; }
+        if (current === goal) {
+          found = true;
+          break;
+        }
         for (const nxt of adjacency[current] || []) {
           if (!(nxt in prev)) {
             prev[nxt] = current;
@@ -275,7 +281,10 @@ export const createTrip = async (req: Request, res: Response) => {
         // Reconstruct path
         const pathRanks: string[] = [];
         let cur: string | null = goal;
-        while (cur) { pathRanks.push(cur); cur = prev[cur]; }
+        while (cur) {
+          pathRanks.push(cur);
+          cur = prev[cur];
+        }
         pathRanks.reverse(); // start -> goal
         // Convert consecutive rank pairs to PossibleRoute ids
         const rankPairs: Array<{ from: string; to: string }> = [];
@@ -284,7 +293,8 @@ export const createTrip = async (req: Request, res: Response) => {
         }
         // Index edges by from->to for quick lookup
         const edgeMap = new Map<string, any>();
-        for (const e of edges) edgeMap.set(`${String(e.fromRank)}->${String(e.toRank)}`, e);
+        for (const e of edges)
+          edgeMap.set(`${String(e.fromRank)}->${String(e.toRank)}`, e);
         effectiveRoute = rankPairs.map((pair, idx) => {
           const edge = edgeMap.get(`${pair.from}->${pair.to}`);
           return {
@@ -303,19 +313,33 @@ export const createTrip = async (req: Request, res: Response) => {
           leg: leg.leg || 1,
           associationSplit: leg.associationSplit,
           driverSplit: leg.driverSplit,
-          driver: leg.driverId ? new mongoose.Types.ObjectId(leg.driverId) : undefined,
-          details: leg.routeId ? new mongoose.Types.ObjectId(leg.routeId) : undefined,
+          driver: leg.driverId
+            ? new mongoose.Types.ObjectId(leg.driverId)
+            : undefined,
+          details: leg.routeId
+            ? new mongoose.Types.ObjectId(leg.routeId)
+            : undefined,
         }))
       : Array.isArray(effectiveRoute)
       ? effectiveRoute.map((leg: any) => ({
           leg: leg.leg || 1,
           associationSplit: leg.associationSplit || 0,
           driverSplit: leg.driverSplit || 0,
-          driver: leg.driverId ? new mongoose.Types.ObjectId(leg.driverId) : undefined,
-          details: leg.routeId ? new mongoose.Types.ObjectId(leg.routeId) : undefined,
+          driver: leg.driverId
+            ? new mongoose.Types.ObjectId(leg.driverId)
+            : undefined,
+          details: leg.routeId
+            ? new mongoose.Types.ObjectId(leg.routeId)
+            : undefined,
         }))
       : [];
-    const trip = new Trip({ price, origin, destination, route: mappedRoute, ...rest });
+    const trip = new Trip({
+      price,
+      origin,
+      destination,
+      route: mappedRoute,
+      ...rest,
+    });
     const savedTrip = await trip.save();
     const deep = req.query.deep === "true";
     const populated = deep
@@ -495,12 +519,20 @@ export const updateTrip = async (req: Request, res: Response) => {
         leg: leg.leg || 1,
         associationSplit: leg.associationSplit,
         driverSplit: leg.driverSplit,
-        driver: leg.driverId ? new mongoose.Types.ObjectId(leg.driverId) : undefined,
-        details: leg.routeId ? new mongoose.Types.ObjectId(leg.routeId) : undefined,
+        driver: leg.driverId
+          ? new mongoose.Types.ObjectId(leg.driverId)
+          : undefined,
+        details: leg.routeId
+          ? new mongoose.Types.ObjectId(leg.routeId)
+          : undefined,
       }));
     }
     if (price !== undefined) updatePayload.price = price;
-    const updatedTrip = await Trip.findByIdAndUpdate(req.params.id, updatePayload, { new: true });
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      req.params.id,
+      updatePayload,
+      { new: true }
+    );
     if (!updatedTrip)
       return res.status(404).json({ message: "Trip not found" });
     let trip: any = updatedTrip;
@@ -560,149 +592,5 @@ export const deleteTrip = async (req: Request, res: Response) => {
     res.status(200).json({ message: "Trip deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting trip", error });
-  }
-};
-
-/**
- * @swagger
- * /api/trip-details/link-driver-and-route:
- *   post:
- *     summary: Link a Driver and Route to a Trip leg
- *     description: Sets the driver and route reference for a specific leg index within a trip.
- *     tags: [Trips]
- *     operationId: linkDriverAndRoute
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LinkDriverAndRouteRequest'
- *     responses:
- *       200:
- *         description: Driver and route linked
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/LinkDriverAndRouteResponse'
- *       400:
- *         description: Validation error (invalid leg index)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       404:
- *         description: Trip not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
-export const linkDriverAndRoute = async (req: Request, res: Response) => {
-  try {
-    const { tripId, legIndex, driverId, routeId } = req.body;
-
-    const trip = await Trip.findById(tripId);
-    if (!trip) return res.status(404).json({ message: "Trip not found" });
-
-    if (!trip.route[legIndex])
-      return res.status(400).json({ message: "Invalid leg index" });
-
-    trip.route[legIndex].driver = new mongoose.Types.ObjectId(driverId);
-  trip.route[legIndex].details = new mongoose.Types.ObjectId(routeId);
-
-    await trip.save();
-    const deep = req.query.deep === "true";
-    let responseTrip: any = trip;
-    if (deep) {
-      responseTrip = await Trip.findById(trip._id)
-        .populate("origin destination")
-        .populate({ path: "route.driver" })
-        .populate({ path: "route.association" })
-        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
-    }
-    res
-      .status(200)
-      .json({ message: "Driver and Route linked successfully", trip: responseTrip });
-  } catch (error) {
-    res.status(500).json({ message: "Error linking driver and route", error });
-  }
-};
-
-/**
- * @swagger
- * /api/trip-details/unlink-driver-and-route:
- *   post:
- *     summary: Unlink a Driver and Route from a Trip leg
- *     description: Removes the driver and route references for a specific leg index within a trip.
- *     tags: [Trips]
- *     operationId: unlinkDriverAndRoute
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UnlinkDriverAndRouteRequest'
- *     responses:
- *       200:
- *         description: Driver and route unlinked
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/UnlinkDriverAndRouteResponse'
- *       400:
- *         description: Validation error (invalid leg index)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       404:
- *         description: Trip not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
-export const unlinkDriverAndRoute = async (req: Request, res: Response) => {
-  try {
-    const { tripId, legIndex } = req.body;
-
-    const trip = await Trip.findById(tripId);
-    if (!trip) return res.status(404).json({ message: "Trip not found" });
-
-    if (!trip.route[legIndex])
-      return res.status(400).json({ message: "Invalid leg index" });
-
-    trip.route[legIndex].driver = undefined;
-  trip.route[legIndex].details = undefined;
-
-    await trip.save();
-    const deep = req.query.deep === "true";
-    let responseTrip: any = trip;
-    if (deep) {
-      responseTrip = await Trip.findById(trip._id)
-        .populate("origin destination")
-        .populate({ path: "route.driver" })
-        .populate({ path: "route.association" })
-        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
-    }
-    res
-      .status(200)
-      .json({ message: "Driver and Route unlinked successfully", trip: responseTrip });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error unlinking driver and route", error });
   }
 };
