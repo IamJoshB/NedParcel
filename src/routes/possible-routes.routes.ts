@@ -5,8 +5,6 @@ import {
   getRouteById,
   updateRoute,
   deleteRoute,
-  linkDriver,
-  unlinkDriver,
 } from "../controllers/possible-routes.controller";
 
 const router = express.Router();
@@ -17,9 +15,5 @@ router.get("/", getAllRoutes);
 router.get("/:id", getRouteById);
 router.put("/:id", updateRoute);
 router.delete("/:id", deleteRoute);
-
-// Linking and unlinking endpoints
-router.post("/link-driver", linkDriver);
-router.post("/unlink-driver", unlinkDriver);
 
 export default router;
