@@ -17,9 +17,7 @@ export interface IParcel extends Document {
   package: Package;
   trip: mongoose.Types.ObjectId; // Trip reference
   legIndex: number; // which leg of the trip
-  possibleRoute: mongoose.Types.ObjectId; // specific PossibleRoute used
   status: ParcelStatus;
-  price: number; // final price charged
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -49,14 +47,12 @@ const ParcelSchema = new Schema<IParcel>(
     },
     trip: { type: Schema.Types.ObjectId, ref: "Trip" },
     legIndex: { type: Number, min: 0 },
-    possibleRoute: { type: Schema.Types.ObjectId, ref: "PossibleRoute" },
     status: {
       type: String,
       enum: ["awaiting-pickup", "in-transit", "delivered", "received"],
       default: "awaiting-pickup",
       index: true,
     },
-    price: { type: Number, required: true, min: 0 },
     notes: { type: String, trim: true },
   },
   { timestamps: true }
