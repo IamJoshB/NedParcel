@@ -313,18 +313,6 @@ async function journeyParcels() {
     const routeEntry = routes.length
       ? routes[Math.floor(Math.random() * routes.length)]
       : undefined;
-    let originRank: string;
-    let destinationRank: string;
-    if (routeEntry) {
-      const { fromId, toId } = parseRoute(routeEntry._id);
-      originRank = fromId;
-      destinationRank = toId;
-    } else {
-      originRank = ranks[Math.floor(Math.random() * ranks.length)]._id;
-      destinationRank = ranks[Math.floor(Math.random() * ranks.length)]._id;
-      if (originRank === destinationRank && ranks.length > 1)
-        destinationRank = ranks.filter((r) => r._id !== originRank)[0]._id;
-    }
     const pkg = pkgTypes[Math.floor(Math.random() * pkgTypes.length)];
     const senderFirstNames = [
       "Thabo",
@@ -396,8 +384,6 @@ async function journeyParcels() {
         senderLastName,
         senderPhone,
         receiverPhone,
-        originRank,
-        destinationRank,
         package: {
           identifier: `PKG-${Math.random()
             .toString(36)
