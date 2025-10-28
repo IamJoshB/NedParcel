@@ -14,8 +14,6 @@ export interface IParcel extends Document {
   senderPhone: string;
   receiverPhone: string;
   receiverOtp: string; // stored hashed ideally (plain for now)
-  originRank: mongoose.Types.ObjectId;
-  destinationRank: mongoose.Types.ObjectId;
   package: Package;
   trip: mongoose.Types.ObjectId; // Trip reference
   legIndex: number; // which leg of the trip
@@ -41,16 +39,6 @@ const ParcelSchema = new Schema<IParcel>(
     senderPhone: { type: String, required: true, trim: true },
     receiverPhone: { type: String, required: true, trim: true },
     receiverOtp: { type: String, required: true },
-    originRank: {
-      type: Schema.Types.ObjectId,
-      ref: "TaxiRank",
-      required: true,
-    },
-    destinationRank: {
-      type: Schema.Types.ObjectId,
-      ref: "TaxiRank",
-      required: true,
-    },
     package: {
       identifier: { type: String, required: true, unique: true, index: true },
       type: {
