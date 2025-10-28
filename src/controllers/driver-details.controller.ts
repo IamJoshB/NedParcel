@@ -203,7 +203,11 @@ export const createDriver = async (req: Request, res: Response) => {
   try {
     const driver = new Driver(req.body);
     await driver.save();
-    res.status(201).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error creating driver", error });
   }
@@ -235,7 +239,10 @@ export const createDriver = async (req: Request, res: Response) => {
  */
 export const getAllDrivers = async (_req: Request, res: Response) => {
   try {
-    const drivers = await Driver.find();
+    const drivers = await Driver.find()
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
     res.status(200).json(drivers);
   } catch (error) {
     res.status(500).json({ message: "Error getting drivers", error });
@@ -347,7 +354,11 @@ export const updateDriver = async (req: Request, res: Response) => {
 
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error updating driver details", error });
   }
@@ -448,8 +459,11 @@ export const linkTaxiRank = async (req: Request, res: Response) => {
       driver.linkedRanks.push(rankId);
       await driver.save();
     }
-
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error linking taxi details", error });
   }
@@ -501,7 +515,11 @@ export const linkBankingDetails = async (req: Request, res: Response) => {
 
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error linking banking details", error });
   }
@@ -553,7 +571,11 @@ export const linkTaxiAssociation = async (req: Request, res: Response) => {
 
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res
       .status(500)
@@ -606,7 +628,11 @@ export const unlinkTaxiRank = async (req: Request, res: Response) => {
     );
 
     await driver.save();
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res
       .status(500)
@@ -659,7 +685,11 @@ export const unlinkBankingDetails = async (req: Request, res: Response) => {
 
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error unlinking banking details", error });
   }
@@ -710,7 +740,11 @@ export const unlinkTaxiAssociation = async (req: Request, res: Response) => {
 
     if (!driver) return res.status(404).json({ message: "Driver not found" });
 
-    res.status(200).json(driver);
+    const populated = await Driver.findById(driver._id)
+      .populate("linkedRanks")
+      .populate("bankingDetails")
+      .populate("taxiAssociation");
+    res.status(200).json(populated);
   } catch (error) {
     res
       .status(500)
