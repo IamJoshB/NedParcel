@@ -31,7 +31,7 @@ const swaggerDocs = (app: Express): void => {
         },
       },
     },
-    apis: ["src/controllers/*.ts"],
+    apis: ["src/controllers/*.ts", "dist/controllers/*.js"],
   };
 
   const swaggerSpec = swaggerJsdoc(options);
