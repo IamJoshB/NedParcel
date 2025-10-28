@@ -240,7 +240,23 @@ export const createParcel = async (req: Request, res: Response) => {
       ...req.body,
     });
     const saved = await parcel.save();
-    res.status(201).json(saved);
+    const deep = req.query.deep === "true";
+    const populated = deep
+      ? await Parcel.findById(saved._id)
+          .populate("originRank destinationRank possibleRoute")
+          .populate("package.type")
+          .populate({
+            path: "trip",
+            populate: [
+              "origin",
+              "destination",
+              { path: "route.driver" },
+              { path: "route.association" },
+              { path: "route.details", populate: ["fromRank", "toRank"] },
+            ],
+          })
+      : saved;
+    res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error creating parcel", error });
   }
@@ -270,11 +286,26 @@ export const createParcel = async (req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-export const getAllParcels = async (_req: Request, res: Response) => {
+export const getAllParcels = async (req: Request, res: Response) => {
   try {
-    const parcels = await Parcel.find()
-      .populate("originRank destinationRank trip possibleRoute")
-      .populate("package.type");
+    const deep = req.query.deep === "true";
+    const parcels = deep
+      ? await Parcel.find()
+          .populate("originRank destinationRank possibleRoute")
+          .populate("package.type")
+          .populate({
+            path: "trip",
+            populate: [
+              "origin",
+              "destination",
+              { path: "route.driver" },
+              { path: "route.association" },
+              { path: "route.details", populate: ["fromRank", "toRank"] },
+            ],
+          })
+      : await Parcel.find()
+          .populate("originRank destinationRank trip possibleRoute")
+          .populate("package.type");
     res.status(200).json(parcels);
   } catch (error) {
     res.status(500).json({ message: "Error getting parcels", error });
@@ -318,9 +349,24 @@ export const getAllParcels = async (_req: Request, res: Response) => {
  */
 export const getParcelById = async (req: Request, res: Response) => {
   try {
-    const parcel = await Parcel.findById(req.params.id)
-      .populate("originRank destinationRank trip possibleRoute")
-      .populate("package.type");
+    const deep = req.query.deep === "true";
+    const parcel = deep
+      ? await Parcel.findById(req.params.id)
+          .populate("originRank destinationRank possibleRoute")
+          .populate("package.type")
+          .populate({
+            path: "trip",
+            populate: [
+              "origin",
+              "destination",
+              { path: "route.driver" },
+              { path: "route.association" },
+              { path: "route.details", populate: ["fromRank", "toRank"] },
+            ],
+          })
+      : await Parcel.findById(req.params.id)
+          .populate("originRank destinationRank trip possibleRoute")
+          .populate("package.type");
     if (!parcel) return res.status(404).json({ message: "Parcel not found" });
     res.status(200).json(parcel);
   } catch (error) {
@@ -371,11 +417,28 @@ export const getParcelById = async (req: Request, res: Response) => {
  */
 export const updateParcel = async (req: Request, res: Response) => {
   try {
+    const deep = req.query.deep === "true";
     const updated = await Parcel.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
     if (!updated) return res.status(404).json({ message: "Parcel not found" });
-    res.status(200).json(updated);
+    let parcel: any = updated;
+    if (deep) {
+      parcel = await Parcel.findById(updated._id)
+        .populate("originRank destinationRank possibleRoute")
+        .populate("package.type")
+        .populate({
+          path: "trip",
+          populate: [
+            "origin",
+            "destination",
+            { path: "route.driver" },
+            { path: "route.association" },
+            { path: "route.details", populate: ["fromRank", "toRank"] },
+          ],
+        });
+    }
+    res.status(200).json(parcel);
   } catch (error) {
     res.status(500).json({ message: "Error updating parcel", error });
   }
