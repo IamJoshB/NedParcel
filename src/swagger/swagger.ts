@@ -14,7 +14,7 @@ const swaggerDocs = (app: Express): void => {
       },
       servers: [
         {
-          url: `https://api-test.avo.africa/${apiTitle.toLowerCase()}`,
+          url: `https://nedparcel-production.up.railway.app`,
         },
       ],
       components: {
