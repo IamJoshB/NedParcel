@@ -41,10 +41,6 @@ import Parcel from "../models/parcel-details.model";
  *         receiverOtp:
  *           type: string
  *           example: 458912
- *         originRank:
- *           $ref: '#/components/schemas/ObjectId'
- *         destinationRank:
- *           $ref: '#/components/schemas/ObjectId'
  *         package:
  *           type: object
  *           properties:
@@ -85,8 +81,6 @@ import Parcel from "../models/parcel-details.model";
  *         - senderPhone
  *         - receiverPhone
  *         - receiverOtp
- *         - originRank
- *         - destinationRank
  *         - package
  *         - status
  *         - price
@@ -103,10 +97,6 @@ import Parcel from "../models/parcel-details.model";
  *           type: string
  *         receiverPhone:
  *           type: string
- *         originRank:
- *           $ref: '#/components/schemas/ObjectId'
- *         destinationRank:
- *           $ref: '#/components/schemas/ObjectId'
  *         package:
  *           type: object
  *           properties:
@@ -133,8 +123,6 @@ import Parcel from "../models/parcel-details.model";
  *         - senderLastName
  *         - senderPhone
  *         - receiverPhone
- *         - originRank
- *         - destinationRank
  *         - package
  *         - price
  *     UpdateParcelRequest:
@@ -243,7 +231,7 @@ export const createParcel = async (req: Request, res: Response) => {
     const deep = req.query.deep === "true";
     const populated = deep
       ? await Parcel.findById(saved._id)
-          .populate("originRank destinationRank possibleRoute")
+          .populate("possibleRoute")
           .populate("package.type")
           .populate({
             path: "trip",
@@ -291,7 +279,7 @@ export const getAllParcels = async (req: Request, res: Response) => {
     const deep = req.query.deep === "true";
     const parcels = deep
       ? await Parcel.find()
-          .populate("originRank destinationRank possibleRoute")
+          .populate("possibleRoute")
           .populate("package.type")
           .populate({
             path: "trip",
@@ -304,7 +292,7 @@ export const getAllParcels = async (req: Request, res: Response) => {
             ],
           })
       : await Parcel.find()
-          .populate("originRank destinationRank trip possibleRoute")
+          .populate("trip possibleRoute")
           .populate("package.type");
     res.status(200).json(parcels);
   } catch (error) {
@@ -352,7 +340,7 @@ export const getParcelById = async (req: Request, res: Response) => {
     const deep = req.query.deep === "true";
     const parcel = deep
       ? await Parcel.findById(req.params.id)
-          .populate("originRank destinationRank possibleRoute")
+          .populate("possibleRoute")
           .populate("package.type")
           .populate({
             path: "trip",
@@ -365,7 +353,7 @@ export const getParcelById = async (req: Request, res: Response) => {
             ],
           })
       : await Parcel.findById(req.params.id)
-          .populate("originRank destinationRank trip possibleRoute")
+          .populate("trip possibleRoute")
           .populate("package.type");
     if (!parcel) return res.status(404).json({ message: "Parcel not found" });
     res.status(200).json(parcel);
@@ -425,7 +413,7 @@ export const updateParcel = async (req: Request, res: Response) => {
     let parcel: any = updated;
     if (deep) {
       parcel = await Parcel.findById(updated._id)
-        .populate("originRank destinationRank possibleRoute")
+  .populate("possibleRoute")
         .populate("package.type")
         .populate({
           path: "trip",
