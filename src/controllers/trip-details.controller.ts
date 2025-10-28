@@ -15,6 +15,7 @@ import mongoose from "mongoose";
  *       example: 6510d2f4a1c2b3001234abcd
  *     TripLeg:
  *       type: object
+ *       description: One leg of a trip. associationSplit & driverSplit default to 0 and driver/details may be absent when auto-generated.
  *       properties:
  *         leg:
  *           type: integer
@@ -46,35 +47,42 @@ import mongoose from "mongoose";
  *         fullDistance:
  *           type: number
  *           example: 42.7
- *           description: Sum of distances across all legs.
+ *           readOnly: true
+ *           description: Sum of distances across all legs (server-calculated).
  *         origin:
  *           $ref: '#/components/schemas/ObjectId'
  *         destination:
  *           $ref: '#/components/schemas/ObjectId'
  *         route:
  *           type: array
+ *           description: Ordered legs; optional on create if origin & destination provided (BFS auto-generation).
  *           items:
  *             $ref: '#/components/schemas/TripLeg'
  *         createdAt:
  *           type: string
  *           format: date-time
+ *           readOnly: true
  *         updatedAt:
  *           type: string
  *           format: date-time
+ *           readOnly: true
  *       required:
  *         - price
- *         - fullDistance
  *         - origin
  *         - destination
- *         - route
  *     CreateTripRequest:
  *       type: object
+ *       description: Provide either an explicit 'route' OR 'origin' & 'destination' for auto-generation.
  *       properties:
  *         price:
  *           type: number
+ *         origin:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         destination:
+ *           $ref: '#/components/schemas/ObjectId'
  *         route:
  *           type: array
- *           description: Initial set of legs in the trip.
+ *           description: Explicit legs (omit for auto-generation).
  *           items:
  *             type: object
  *             properties:
@@ -90,34 +98,32 @@ import mongoose from "mongoose";
  *                 $ref: '#/components/schemas/ObjectId'
  *             required:
  *               - leg
+ *       required:
+ *         - price
+ *         - origin
+ *         - destination
+ *     UpdateTripRequest:
+ *       type: object
+ *       description: Partial update; supply 'route' (TripLeg objects) OR 'legs' (mapping with driverId/routeId) to replace legs.
+ *       properties:
+ *         price:
+ *           type: number
  *         origin:
  *           $ref: '#/components/schemas/ObjectId'
  *         destination:
  *           $ref: '#/components/schemas/ObjectId'
- *               - associationSplit
- *               - driverSplit
- *               - driverId
- *               - routeId
- *       required:
- *         - price
- *         - route
- *     UpdateTripRequest:
- *       type: object
- *       description: Partial update of trip fields or legs.
- *       properties:
- *         price:
- *           type: number
  *         route:
  *           type: array
  *           items:
  *             $ref: '#/components/schemas/TripLeg'
  *         legs:
  *           type: array
- *           description: Optional replacement leg definitions with driverId/routeId.
+ *           description: Replacement leg definitions (mapping style).
+ *           items:
+ *             type: object
  *             properties:
- *         - price
- *         - origin
- *         - destination
+ *               leg:
+ *                 type: integer
  *               associationSplit:
  *                 type: number
  *               driverSplit:
@@ -130,8 +136,6 @@ import mongoose from "mongoose";
  *               - leg
  *               - associationSplit
  *               - driverSplit
- *               - driverId
- *               - routeId
  *     LinkDriverAndRouteRequest:
  *       type: object
  *       properties:
@@ -140,8 +144,7 @@ import mongoose from "mongoose";
  *         legIndex:
  *           type: integer
  *           minimum: 0
- *           description: Zero-based index of the leg in the trip.route array.
- *           example: 0
+ *           description: Zero-based index of leg.
  *         driverId:
  *           $ref: '#/components/schemas/ObjectId'
  *         routeId:
@@ -159,9 +162,10 @@ import mongoose from "mongoose";
  *         legIndex:
  *           type: integer
  *           minimum: 0
- *           example: 0
  *       required:
  *         - tripId
+ *         - legIndex
+ *     LinkDriverAndRouteResponse:
  *       type: object
  *       properties:
  *         message:
@@ -203,13 +207,19 @@ import mongoose from "mongoose";
  */
 
 /**
- * @swagger
- * /api/trip-details:
- *   post:
- *     summary: Create a Trip
- *     description: Creates a new trip with pricing and initial legs.
+* @swagger
+* /api/trip-details:
+*   post:
+*     summary: Create a Trip
+*     description: Creates a new trip. If 'route' omitted and origin & destination provided, shortest-hop route auto-generated.
  *     tags: [Trips]
  *     operationId: createTrip
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, returns deeply populated trip.
  *     requestBody:
  *       required: true
  *       content:
@@ -361,13 +371,19 @@ export const createTrip = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/trip-details:
- *   get:
- *     summary: Get all Trips
- *     description: Returns all trips with populated driver and route references for each leg.
+* @swagger
+* /api/trip-details:
+*   get:
+*     summary: Get all Trips
+*     description: Returns all trips. Use ?deep=true for full population.
  *     tags: [Trips]
  *     operationId: getTrips
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates origin, destination, route.* references.
  *     responses:
  *       200:
  *         description: List of trips
@@ -405,11 +421,11 @@ export const getTrips = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/trip-details/{id}:
- *   get:
- *     summary: Get a Trip by ID
- *     description: Retrieves a trip with populated driver and route references per leg.
+* @swagger
+* /api/trip-details/{id}:
+*   get:
+*     summary: Get a Trip by ID
+*     description: Retrieves a trip. Use ?deep=true for full nested population.
  *     tags: [Trips]
  *     operationId: getTripById
  *     parameters:
@@ -419,6 +435,11 @@ export const getTrips = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Trip ID
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates nested references.
  *     responses:
  *       200:
  *         description: Trip found
@@ -461,11 +482,11 @@ export const getTripById = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/trip-details/{id}:
- *   put:
- *     summary: Update a Trip
- *     description: Replaces or partially updates trip metadata and legs.
+* @swagger
+* /api/trip-details/{id}:
+*   put:
+*     summary: Update a Trip
+*     description: Partially updates metadata or replaces legs. Provide 'route' OR 'legs'. Use ?deep=true for nested population in response.
  *     tags: [Trips]
  *     operationId: updateTrip
  *     parameters:
@@ -475,6 +496,11 @@ export const getTripById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Trip ID
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates nested references in response.
  *     requestBody:
  *       required: true
  *       content:
@@ -550,11 +576,11 @@ export const updateTrip = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/trip-details/{id}:
- *   delete:
- *     summary: Delete a Trip
- *     description: Permanently removes a trip.
+* @swagger
+* /api/trip-details/{id}:
+*   delete:
+*     summary: Delete a Trip
+*     description: Permanently removes a trip.
  *     tags: [Trips]
  *     operationId: deleteTrip
  *     parameters:
