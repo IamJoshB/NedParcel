@@ -21,6 +21,18 @@ import Route from "../models/possible-routes.model";
  *         farePrice:
  *           type: number
  *           example: 25.5
+ *         price:
+ *           type: number
+ *           example: 40
+ *           description: Package movement price between the two ranks.
+ *         driverSplit:
+ *           type: number
+ *           example: 30
+ *           description: Percentage (or share units) for driver revenue allocation.
+ *         associationSplit:
+ *           type: number
+ *           example: 70
+ *           description: Percentage (or share units) for association revenue allocation.
  *         distance:
  *           type: number
  *           example: 12.5
@@ -36,6 +48,7 @@ import Route from "../models/possible-routes.model";
  *           format: date-time
  *       required:
  *         - farePrice
+ *         - price
  *         - distance
  *         - fromRank
  *         - toRank
@@ -44,14 +57,21 @@ import Route from "../models/possible-routes.model";
  *       properties:
  *         farePrice:
  *           type: number
+ *         price:
+ *           type: number
  *         distance:
  *           type: number
  *         fromRank:
  *           $ref: '#/components/schemas/ObjectId'
  *         toRank:
  *           $ref: '#/components/schemas/ObjectId'
+ *         driverSplit:
+ *           type: number
+ *         associationSplit:
+ *           type: number
  *       required:
  *         - farePrice
+ *         - price
  *         - distance
  *         - fromRank
  *         - toRank
@@ -61,12 +81,18 @@ import Route from "../models/possible-routes.model";
  *       properties:
  *         farePrice:
  *           type: number
+ *         price:
+ *           type: number
  *         distance:
  *           type: number
  *         fromRank:
  *           $ref: '#/components/schemas/ObjectId'
  *         toRank:
  *           $ref: '#/components/schemas/ObjectId'
+ *         driverSplit:
+ *           type: number
+ *         associationSplit:
+ *           type: number
  *     LinkDriverEntityRequest:
  *       type: object
  *       properties:
