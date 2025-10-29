@@ -4,8 +4,10 @@
 NedParcel is an Express + TypeScript + Mongoose REST API for the taxi transport domain: Taxi Ranks, Directed Possible Routes, Trips (auto-generated multi-leg paths), Drivers, Marshalls, Taxi Associations, Banking Details, Parcels, and Package Types. It emphasizes:
 
 * Automatic shortest-hop trip route generation (BFS across `PossibleRoute` edges)
-* Strict immutability of trip legs after creation (route is read-only)
-* Driver-to-leg assignment with validation against rank eligibility
+* Server-derived `Trip.price` (sum of `PossibleRoute.price` across legs) & `Trip.fullDistance`
+* Per-leg revenue splits (`associationSplit`, `driverSplit`) copied from each `PossibleRoute`
+* Strict immutability of trip legs, price & fullDistance after creation (read-only)
+* Driver-to-leg assignment with validation against origin rank eligibility
 * Parcel movement across trip legs without storing redundant origin/destination data
 * Depth-controlled population (`?deep` / `?shallow`) to limit payload size
 * Journey-based seeding via `src/seed/test-data.ts` using only HTTP calls
@@ -14,7 +16,7 @@ NedParcel is an Express + TypeScript + Mongoose REST API for the taxi transport 
 | Entity | Purpose | Key Relationships |
 |--------|---------|-------------------|
 | TaxiRank | Physical rank / node | Has many outgoing `PossibleRoute` edges; can link `TaxiAssociation` |
-| PossibleRoute | Directed edge from one rank to another with `distance` + `farePrice` | `fromRank` -> `toRank` (reverse is auto-created) |
+| PossibleRoute | Directed edge from one rank to another with `distance`, `farePrice`, `price`, `driverSplit`, `associationSplit` | `fromRank` -> `toRank` (reverse must be created separately) |
 | TaxiAssociation | Organization managing drivers/marshalls | Optional `BankingDetails`; linkable to ranks |
 | BankingDetails | Account metadata | Linked to `TaxiAssociation` or a `Driver` |
 | Driver | Operates taxis | Links multiple ranks (`linkedRanks`), an association, banking details; can be assigned per trip leg |
@@ -27,13 +29,20 @@ NedParcel is an Express + TypeScript + Mongoose REST API for the taxi transport 
 Parcel no longer stores: `originRank`, `destinationRank`, `possibleRoute`, or `price`. All contextual route information is derived from its linked trip leg.
 
 ## 3. Trip Auto-Generation & Leg Semantics
-`POST /api/trip-details` accepts only:
+`POST /api/trip-details` body:
 ```json
-{ "price": 123.45, "origin": "<TaxiRankId>", "destination": "<TaxiRankId>" }
+{ "origin": "<TaxiRankId>", "destination": "<TaxiRankId>" }
 ```
-The server performs a BFS to find the shortest-hop path between ranks. For each hop an immutable leg is created. Stored fields:
-* `route[]` (readOnly): legs with `leg`, `associationSplit` (default 0), `driverSplit` (default 0), `details` (PossibleRoute reference), optional `driver`
-* `fullDistance` (readOnly): Sum of `distance` across leg `details`
+The server performs a BFS to find the shortest-hop path between ranks. For each hop an immutable leg is created. Server then:
+* Calculates `fullDistance` (sum of `PossibleRoute.distance`)
+* Calculates `price` (sum of `PossibleRoute.price`)
+* Copies `associationSplit` & `driverSplit` from each `PossibleRoute` onto the corresponding leg
+
+Stored leg fields:
+* `leg` (sequence number)
+* `associationSplit` / `driverSplit`
+* `details` (PossibleRoute ObjectId)
+* optional `driver` (linked post-creation)
 
 You CANNOT supply custom legs or modify them after creation. To add drivers use the driver linking endpoints.
 
@@ -105,7 +114,7 @@ All error responses:
 Important schema properties:
 * Trip: `route` (array, readOnly), `fullDistance` (number, readOnly)
 * Parcel: `trackingNumber` & `receiverOtp` (readOnly), `trip` optional
-* PossibleRoute: `farePrice`, `distance`, `fromRank`, `toRank` (reverse created automatically by rank destination linking endpoint)
+* PossibleRoute: `farePrice`, `price`, `distance`, `driverSplit`, `associationSplit`, `fromRank`, `toRank` (reverse requires second request)
 * Driver linking endpoint enforces origin rank eligibility
 
 ## 10. Driver & Marshall Operations
@@ -139,7 +148,7 @@ PORT=3000
 | Link Driver to Leg | POST | /api/trip-details/link-driver |
 | Unlink Driver from Leg | POST | /api/trip-details/unlink-driver |
 | Move Parcel Leg | POST | /api/parcel-details/move-leg |
-| Link Rank Destination (creates forward + reverse) | POST | /api/taxi-ranks/link-destination |
+| Link Rank Destination (single directed edge) | POST | /api/taxi-ranks/link-destination |
 | Link Rank Association | POST | /api/taxi-ranks/link-association |
 
 ## 15. License
