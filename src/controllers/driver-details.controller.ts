@@ -154,7 +154,8 @@ import fs from "fs";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail (debug only in non-production)
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
@@ -218,9 +219,15 @@ export const createDriver = async (req: Request, res: Response) => {
  * /api/driver-details:
  *   get:
  *     summary: Get all drivers
- *     description: Returns a list of all drivers.
+ *     description: Returns a list of all drivers. Use ?shallow=true to omit population of linkedRanks, bankingDetails and taxiAssociation.
  *     tags: [Drivers]
  *     operationId: getAllDrivers
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relationship references.
  *     responses:
  *       200:
  *         description: List of drivers
@@ -254,7 +261,7 @@ export const getAllDrivers = async (_req: Request, res: Response) => {
  * /api/driver-details/{id}:
  *   get:
  *     summary: Get a driver by ID
- *     description: Retrieves detailed information for a single driver.
+ *     description: Retrieves a single driver. Use ?shallow=true to omit population of linkedRanks, bankingDetails and taxiAssociation.
  *     tags: [Drivers]
  *     operationId: getDriverById
  *     parameters:
@@ -264,6 +271,11 @@ export const getAllDrivers = async (_req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Driver ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationship documents.
  *     responses:
  *       200:
  *         description: Driver details
@@ -304,7 +316,7 @@ export const getDriverById = async (req: Request, res: Response) => {
  * /api/driver-details/{id}:
  *   put:
  *     summary: Update a driver
- *     description: Updates some or all fields of a driver.
+ *     description: Updates some or all fields of a driver. Use ?shallow=true to omit population of linkedRanks, bankingDetails and taxiAssociation in response.
  *     tags: [Drivers]
  *     operationId: updateDriver
  *     parameters:
@@ -314,6 +326,11 @@ export const getDriverById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Driver ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationship documents.
  *     requestBody:
  *       required: true
  *       content:
@@ -379,6 +396,11 @@ export const updateDriver = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Driver ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, skips population (useful for lightweight confirmation).
  *     responses:
  *       200:
  *         description: Driver deleted successfully
@@ -420,8 +442,15 @@ export const deleteDriver = async (req: Request, res: Response) => {
  * /api/driver-details/link-rank:
  *   post:
  *     summary: Link a TaxiRank to a driver
+ *     description: Adds a taxi rank to driver's linkedRanks. Use ?shallow=true to omit population in response.
  *     tags: [Drivers]
  *     operationId: linkTaxiRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationships.
  *     requestBody:
  *       required: true
  *       content:
@@ -474,8 +503,15 @@ export const linkTaxiRank = async (req: Request, res: Response) => {
  * /api/driver-details/link-banking:
  *   post:
  *     summary: Link BankingDetails to a driver
+ *     description: Assigns banking details record to driver. Use ?shallow=true to omit population in response.
  *     tags: [Drivers]
  *     operationId: linkBankingDetails
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationships.
  *     requestBody:
  *       required: true
  *       content:
@@ -530,8 +566,15 @@ export const linkBankingDetails = async (req: Request, res: Response) => {
  * /api/driver-details/link-association:
  *   post:
  *     summary: Link TaxiAssociation to a driver
+ *     description: Assigns taxi association record to driver. Use ?shallow=true to omit population in response.
  *     tags: [Drivers]
  *     operationId: linkTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationships.
  *     requestBody:
  *       required: true
  *       content:
@@ -588,8 +631,15 @@ export const linkTaxiAssociation = async (req: Request, res: Response) => {
  * /api/driver-details/unlink-rank:
  *   post:
  *     summary: Unlink a TaxiRank from a driver
+ *     description: Removes a taxi rank from driver's linkedRanks. Use ?shallow=true to omit population in response.
  *     tags: [Drivers]
  *     operationId: unlinkTaxiRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationships.
  *     requestBody:
  *       required: true
  *       content:
@@ -645,8 +695,15 @@ export const unlinkTaxiRank = async (req: Request, res: Response) => {
  * /api/driver-details/unlink-banking:
  *   post:
  *     summary: Unlink BankingDetails from a driver
+ *     description: Unsets driver's bankingDetails reference. Use ?shallow=true to omit population in response.
  *     tags: [Drivers]
  *     operationId: unlinkBankingDetails
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationships.
  *     requestBody:
  *       required: true
  *       content:
@@ -700,8 +757,15 @@ export const unlinkBankingDetails = async (req: Request, res: Response) => {
  * /api/driver-details/unlink-association:
  *   post:
  *     summary: Unlink TaxiAssociation from a driver
+ *     description: Unsets driver's taxiAssociation reference. Use ?shallow=true to omit population in response.
  *     tags: [Drivers]
  *     operationId: unlinkTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns driver without populated relationships.
  *     requestBody:
  *       required: true
  *       content:
