@@ -215,7 +215,7 @@ export const createDriver = async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /drivers:
+ * /api/driver-details:
  *   get:
  *     summary: Get all drivers
  *     description: Returns a list of all drivers.
