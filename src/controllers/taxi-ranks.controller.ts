@@ -159,7 +159,8 @@ import PossibleRoute from "../models/possible-routes.model";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
@@ -169,9 +170,15 @@ import PossibleRoute from "../models/possible-routes.model";
  * /api/taxi-ranks:
  *   post:
  *     summary: Create a Taxi Rank
- *     description: Registers a taxi rank.
+ *     description: Registers a taxi rank. Use ?shallow=true to return rank without deep population of routes & associations.
  *     tags: [TaxiRanks]
  *     operationId: createTaxiRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of possibleRoutes(fromRank,toRank) and taxiAssociations(bankingDetails).
  *     requestBody:
  *       required: true
  *       content:
@@ -220,9 +227,15 @@ export const createTaxiRank = async (req: Request, res: Response) => {
  * /api/taxi-ranks:
  *   get:
  *     summary: Get all Taxi Ranks
- *     description: Returns all taxi ranks with populated relationships.
+ *     description: Returns all taxi ranks. Use ?shallow=true to omit deep population of possibleRoutes(fromRank,toRank) and taxiAssociations(bankingDetails).
  *     tags: [TaxiRanks]
  *     operationId: getAllTaxiRanks
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, performs shallow population (only route IDs and association IDs without nested documents).
  *     responses:
  *       200:
  *         description: List of taxi ranks
@@ -259,7 +272,7 @@ export const getAllTaxiRanks = async (req: Request, res: Response) => {
  * /api/taxi-ranks/{id}:
  *   get:
  *     summary: Get a Taxi Rank by ID
- *     description: Retrieves a single taxi rank with destination ranks and associations.
+ *     description: Retrieves a single taxi rank. Use ?shallow=true to omit deep population of possibleRoutes(fromRank,toRank) and taxiAssociations(bankingDetails).
  *     tags: [TaxiRanks]
  *     operationId: getTaxiRankById
  *     parameters:
@@ -269,6 +282,11 @@ export const getAllTaxiRanks = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Taxi Rank ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of nested route & association documents.
  *     responses:
  *       200:
  *         description: Taxi rank found
@@ -310,7 +328,7 @@ export const getTaxiRankById = async (req: Request, res: Response) => {
  * /api/taxi-ranks/{id}:
  *   put:
  *     summary: Update a Taxi Rank
- *     description: Partially or fully updates a taxi rank.
+ *     description: Partially updates a taxi rank. Use ?shallow=true to return non-deep populated response.
  *     tags: [TaxiRanks]
  *     operationId: updateTaxiRank
  *     parameters:
@@ -320,6 +338,11 @@ export const getTaxiRankById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Taxi Rank ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of nested route & association documents.
  *     requestBody:
  *       required: true
  *       content:
@@ -385,6 +408,11 @@ export const updateTaxiRank = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Taxi Rank ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population (useful just to confirm deletion).
  *     responses:
  *       200:
  *         description: Taxi rank deleted
@@ -427,9 +455,15 @@ export const deleteTaxiRank = async (req: Request, res: Response) => {
  * /api/taxi-ranks/link-destination:
  *   post:
  *     summary: Link a destination Taxi Rank
- *     description: Adds a destination rank to the taxi rank's destination list.
+ *     description: Adds a destination rank to the taxi rank's destination list by creating a PossibleRoute (fromRank -> toRank). Reverse routes are not auto-created; link again with swapped ranks to add reverse. Use ?shallow=true to return non-deep populated rank.
  *     tags: [TaxiRanks]
  *     operationId: linkDestinationRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of newly added route details.
  *     requestBody:
  *       required: true
  *       content:
@@ -499,9 +533,15 @@ export const linkDestinationRank = async (req: Request, res: Response) => {
  * /api/taxi-ranks/unlink-destination:
  *   post:
  *     summary: Unlink a destination Taxi Rank
- *     description: Removes a destination rank from the taxi rank's destination list.
+ *     description: Removes a destination rank by deleting the PossibleRoute document (fromRank -> toRank). Does not affect any reverse route. Use ?shallow=true to return non-deep populated rank.
  *     tags: [TaxiRanks]
  *     operationId: unlinkDestinationRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of remaining routes.
  *     requestBody:
  *       required: true
  *       content:
@@ -566,9 +606,15 @@ export const unlinkDestinationRank = async (req: Request, res: Response) => {
  * /api/taxi-ranks/link-association:
  *   post:
  *     summary: Link a Taxi Association
- *     description: Adds an association to the taxi rank's associations list.
+ *     description: Adds an association to the taxi rank's associations list. Use ?shallow=true to return response without nested bankingDetails.
  *     tags: [TaxiRanks]
  *     operationId: linkTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of associations' banking details.
  *     requestBody:
  *       required: true
  *       content:
@@ -616,9 +662,15 @@ export const linkTaxiAssociation = async (req: Request, res: Response) => {
  * /api/taxi-ranks/unlink-association:
  *   post:
  *     summary: Unlink a Taxi Association
- *     description: Removes an association from the taxi rank's associations list.
+ *     description: Removes an association from the taxi rank's associations list. Use ?shallow=true to return response without nested bankingDetails.
  *     tags: [TaxiRanks]
  *     operationId: unlinkTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits deep population of associations' banking details.
  *     requestBody:
  *       required: true
  *       content:
