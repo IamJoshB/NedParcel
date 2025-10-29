@@ -146,6 +146,56 @@ import mongoose from "mongoose";
  *       required:
  *         - message
  *         - trip
+ *     LinkDriverToLegRequest:
+ *       type: object
+ *       description: Link a driver to a specific trip leg. Driver must already be linked to the origin rank of that leg.
+ *       properties:
+ *         tripId:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         leg:
+ *           type: integer
+ *           minimum: 1
+ *           description: 1-based leg number within the trip route.
+ *         driverId:
+ *           $ref: '#/components/schemas/ObjectId'
+ *       required:
+ *         - tripId
+ *         - leg
+ *         - driverId
+ *     UnlinkDriverFromLegRequest:
+ *       type: object
+ *       description: Unlink a driver from a specific trip leg.
+ *       properties:
+ *         tripId:
+ *           $ref: '#/components/schemas/ObjectId'
+ *         leg:
+ *           type: integer
+ *           minimum: 1
+ *           description: 1-based leg number within the trip route.
+ *       required:
+ *         - tripId
+ *         - leg
+ *     LinkDriverToLegResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *           example: Driver linked to leg successfully
+ *         trip:
+ *           $ref: '#/components/schemas/Trip'
+ *       required:
+ *         - message
+ *         - trip
+ *     UnlinkDriverFromLegResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *           example: Driver unlinked from leg successfully
+ *         trip:
+ *           $ref: '#/components/schemas/Trip'
+ *       required:
+ *         - message
  *     DeleteTripResponse:
  *       type: object
  *       properties:
@@ -550,5 +600,177 @@ export const deleteTrip = async (req: Request, res: Response) => {
     res.status(200).json({ message: "Trip deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting trip", error });
+  }
+};
+
+/**
+* @swagger
+* /api/trip-details/link-driver:
+*   post:
+*     summary: Link a driver to a trip leg
+*     description: Links a driver to the specified leg of a trip. Validation ensures the driver is linked to the origin rank of the leg's PossibleRoute (fromRank).
+*     tags: [Trips]
+*     operationId: linkDriverToTripLeg
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, returns deeply populated trip in response.
+*     requestBody:
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             $ref: '#/components/schemas/LinkDriverToLegRequest'
+*     responses:
+*       200:
+*         description: Driver linked
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/LinkDriverToLegResponse'
+*       400:
+*         description: Validation error
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/ErrorResponse'
+*       404:
+*         description: Trip or Driver not found
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/ErrorResponse'
+*       500:
+*         description: Server error
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/ErrorResponse'
+*/
+export const linkDriverToTripLeg = async (req: Request, res: Response) => {
+  try {
+    const deep = req.query.deep === "true";
+    const { tripId, leg, driverId } = req.body as any;
+    if (!tripId || !leg || !driverId) {
+      return res.status(400).json({ message: "tripId, leg and driverId are required" });
+    }
+    const trip = await Trip.findById(tripId).populate({
+      path: "route.details",
+      select: "fromRank toRank",
+    });
+    if (!trip) return res.status(404).json({ message: "Trip not found" });
+    const legIndex = leg - 1;
+    if (legIndex < 0 || legIndex >= trip.route.length) {
+      return res.status(400).json({ message: "Invalid leg number" });
+    }
+    const legEntry: any = (trip.route as any[])[legIndex];
+    if (!legEntry.details) {
+      return res.status(400).json({ message: "Leg has no route details to validate against" });
+    }
+    // Fetch driver and ensure they are linked to fromRank of this leg
+    const Driver = mongoose.model("Driver");
+    const PossibleRoute = mongoose.model("PossibleRoute");
+    // Ensure details is populated for fromRank, else fetch
+    let fromRankId: any = (legEntry.details as any).fromRank;
+    if (!fromRankId) {
+      const pr: any = await PossibleRoute.findById(legEntry.details).select("fromRank toRank").lean();
+      if (!pr) return res.status(400).json({ message: "Associated PossibleRoute not found" });
+      fromRankId = pr.fromRank;
+    }
+    const driver: any = await Driver.findById(driverId).select("linkedRanks").lean();
+    if (!driver) return res.status(404).json({ message: "Driver not found" });
+    const linkedRankIds = (driver.linkedRanks || []).map((r: any) => String(r));
+    if (!linkedRankIds.includes(String(fromRankId))) {
+      return res.status(400).json({ message: "Driver must be linked to the origin rank of the leg (fromRank) before assignment" });
+    }
+    // Assign driver to leg
+    (trip.route as any[])[legIndex].driver = driverId;
+    await trip.save();
+    const populated = deep
+      ? await Trip.findById(trip._id)
+          .populate("origin destination")
+          .populate({ path: "route.driver" })
+          .populate({ path: "route.association" })
+          .populate({ path: "route.details", populate: ["fromRank", "toRank"] })
+      : await Trip.findById(trip._id).populate("route.driver route.details");
+    return res.status(200).json({ message: "Driver linked to leg successfully", trip: populated });
+  } catch (error) {
+    res.status(500).json({ message: "Error linking driver to leg", error });
+  }
+};
+
+/**
+* @swagger
+* /api/trip-details/unlink-driver:
+*   post:
+*     summary: Unlink a driver from a trip leg
+*     description: Removes the driver assignment from the specified leg of a trip.
+*     tags: [Trips]
+*     operationId: unlinkDriverFromTripLeg
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, returns deeply populated trip in response.
+*     requestBody:
+*       required: true
+*       content:
+*         application/json:
+*           schema:
+*             $ref: '#/components/schemas/UnlinkDriverFromLegRequest'
+*     responses:
+*       200:
+*         description: Driver unlinked
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/UnlinkDriverFromLegResponse'
+*       400:
+*         description: Validation error
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/ErrorResponse'
+*       404:
+*         description: Trip not found
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/ErrorResponse'
+*       500:
+*         description: Server error
+*         content:
+*           application/json:
+*             schema:
+*               $ref: '#/components/schemas/ErrorResponse'
+*/
+export const unlinkDriverFromTripLeg = async (req: Request, res: Response) => {
+  try {
+    const deep = req.query.deep === "true";
+    const { tripId, leg } = req.body as any;
+    if (!tripId || !leg) {
+      return res.status(400).json({ message: "tripId and leg are required" });
+    }
+    const trip = await Trip.findById(tripId);
+    if (!trip) return res.status(404).json({ message: "Trip not found" });
+    const legIndex = leg - 1;
+    if (legIndex < 0 || legIndex >= trip.route.length) {
+      return res.status(400).json({ message: "Invalid leg number" });
+    }
+    (trip.route as any[])[legIndex].driver = undefined;
+    await trip.save();
+    const populated = deep
+      ? await Trip.findById(trip._id)
+          .populate("origin destination")
+          .populate({ path: "route.driver" })
+          .populate({ path: "route.association" })
+          .populate({ path: "route.details", populate: ["fromRank", "toRank"] })
+      : await Trip.findById(trip._id).populate("route.driver route.details");
+    return res.status(200).json({ message: "Driver unlinked from leg successfully", trip: populated });
+  } catch (error) {
+    res.status(500).json({ message: "Error unlinking driver from leg", error });
   }
 };
