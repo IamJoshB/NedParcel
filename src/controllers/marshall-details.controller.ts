@@ -114,7 +114,8 @@ import Marshall from "../models/marshall-details.model";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
@@ -124,9 +125,15 @@ import Marshall from "../models/marshall-details.model";
  * /api/marshall-details:
  *   post:
  *     summary: Create a Marshall
- *     description: Registers a new marshall.
+ *     description: Registers a new marshall. Use ?shallow=true to omit population of linkedRank and taxiAssociation in response.
  *     tags: [Marshalls]
  *     operationId: createMarshall
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     requestBody:
  *       required: true
  *       content:
@@ -171,9 +178,15 @@ export const createMarshall = async (req: Request, res: Response) => {
  * /api/marshall-details:
  *   get:
  *     summary: Get all Marshalls
- *     description: Returns all marshalls with populated linked resources.
+ *     description: Returns all marshalls. Use ?shallow=true to omit population of linkedRank and taxiAssociation.
  *     tags: [Marshalls]
  *     operationId: getAllMarshalls
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw documents without populated relations.
  *     responses:
  *       200:
  *         description: List of marshalls
@@ -206,7 +219,7 @@ export const getAllMarshalls = async (_req: Request, res: Response) => {
  * /api/marshall-details/{id}:
  *   get:
  *     summary: Get a Marshall by ID
- *     description: Retrieves a single marshall with populated relations.
+ *     description: Retrieves a single marshall. Use ?shallow=true to omit population of linkedRank and taxiAssociation.
  *     tags: [Marshalls]
  *     operationId: getMarshallById
  *     parameters:
@@ -216,6 +229,11 @@ export const getAllMarshalls = async (_req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Marshall ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     responses:
  *       200:
  *         description: Marshall found
@@ -255,7 +273,7 @@ export const getMarshallById = async (req: Request, res: Response) => {
  * /api/marshall-details/{id}:
  *   put:
  *     summary: Update a Marshall
- *     description: Partially or fully updates a marshall.
+ *     description: Partially updates a marshall. Use ?shallow=true to omit population in response.
  *     tags: [Marshalls]
  *     operationId: updateMarshall
  *     parameters:
@@ -265,6 +283,11 @@ export const getMarshallById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Marshall ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     requestBody:
  *       required: true
  *       content:
@@ -325,6 +348,11 @@ export const updateMarshall = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Marshall ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, skips population (useful for lightweight confirmation).
  *     responses:
  *       200:
  *         description: Marshall deleted
@@ -367,9 +395,15 @@ export const deleteMarshall = async (req: Request, res: Response) => {
  * /api/marshall-details/link-rank:
  *   post:
  *     summary: Link Taxi Rank
- *     description: Links a taxi rank to a marshall.
+ *     description: Links a taxi rank to a marshall. Use ?shallow=true to omit population of linkedRank and taxiAssociation.
  *     tags: [Marshalls]
  *     operationId: linkTaxiRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     requestBody:
  *       required: true
  *       content:
@@ -422,9 +456,15 @@ export const linkTaxiRank = async (req: Request, res: Response) => {
  * /api/marshall-details/unlink-rank:
  *   post:
  *     summary: Unlink Taxi Rank
- *     description: Removes a linked taxi rank from a marshall.
+ *     description: Removes a linked taxi rank from a marshall. Use ?shallow=true to omit population in response.
  *     tags: [Marshalls]
  *     operationId: unlinkTaxiRank
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     requestBody:
  *       required: true
  *       content:
@@ -477,9 +517,15 @@ export const unlinkTaxiRank = async (req: Request, res: Response) => {
  * /api/marshall-details/link-association:
  *   post:
  *     summary: Link Taxi Association
- *     description: Links a taxi association to a marshall.
+ *     description: Links a taxi association to a marshall. Use ?shallow=true to omit population in response.
  *     tags: [Marshalls]
  *     operationId: linkTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     requestBody:
  *       required: true
  *       content:
@@ -532,9 +578,15 @@ export const linkTaxiAssociation = async (req: Request, res: Response) => {
  * /api/marshall-details/unlink-association:
  *   post:
  *     summary: Unlink Taxi Association
- *     description: Removes a linked taxi association from a marshall.
+ *     description: Removes a linked taxi association from a marshall. Use ?shallow=true to omit population in response.
  *     tags: [Marshalls]
  *     operationId: unlinkTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated relations.
  *     requestBody:
  *       required: true
  *       content:
