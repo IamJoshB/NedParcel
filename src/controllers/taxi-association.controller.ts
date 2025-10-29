@@ -144,7 +144,8 @@ import BankingDetails from "../models/banking-details.model";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
@@ -154,9 +155,15 @@ import BankingDetails from "../models/banking-details.model";
  * /api/taxi-associations:
  *   post:
  *     summary: Create a Taxi Association
- *     description: Registers a new taxi association.
+ *     description: Registers a new taxi association. Use ?shallow=true to omit population of bankingDetails in response.
  *     tags: [TaxiAssociations]
  *     operationId: createTaxiAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated banking details.
  *     requestBody:
  *       required: true
  *       content:
@@ -197,9 +204,15 @@ export const createTaxiAssociation = async (req: Request, res: Response) => {
  * /api/taxi-associations:
  *   get:
  *     summary: Get all Taxi Associations
- *     description: Returns all taxi associations.
+ *     description: Returns all taxi associations. Use ?shallow=true to omit population of bankingDetails.
  *     tags: [TaxiAssociations]
  *     operationId: getAllTaxiAssociations
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw documents without populated banking details.
  *     responses:
  *       200:
  *         description: List of taxi associations
@@ -232,7 +245,7 @@ export const getAllTaxiAssociations = async (_req: Request, res: Response) => {
  * /api/taxi-associations/{id}:
  *   get:
  *     summary: Get Taxi Association by ID
- *     description: Retrieves a single taxi association.
+ *     description: Retrieves a single taxi association. Use ?shallow=true to omit population of bankingDetails.
  *     tags: [TaxiAssociations]
  *     operationId: getTaxiAssociationById
  *     parameters:
@@ -242,6 +255,11 @@ export const getAllTaxiAssociations = async (_req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Taxi Association ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated banking details.
  *     responses:
  *       200:
  *         description: Taxi Association found
@@ -281,7 +299,7 @@ export const getTaxiAssociationById = async (req: Request, res: Response) => {
  * /api/taxi-associations/{id}:
  *   put:
  *     summary: Update a Taxi Association
- *     description: Partially or fully updates association fields.
+ *     description: Partially updates association fields. Use ?shallow=true to omit population of bankingDetails in response.
  *     tags: [TaxiAssociations]
  *     operationId: updateTaxiAssociation
  *     parameters:
@@ -291,6 +309,11 @@ export const getTaxiAssociationById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Taxi Association ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns raw document without populated banking details.
  *     requestBody:
  *       required: true
  *       content:
@@ -354,6 +377,11 @@ export const updateTaxiAssociation = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Taxi Association ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, skips population (useful for lightweight confirmation).
  *     responses:
  *       200:
  *         description: Taxi Association deleted successfully
@@ -396,9 +424,15 @@ export const deleteTaxiAssociation = async (req: Request, res: Response) => {
  * /api/taxi-associations/link-banking:
  *   post:
  *     summary: Link BankingDetails to Taxi Association
- *     description: Associates existing banking details document to an association.
+ *     description: Associates existing banking details document to an association. Use ?shallow=true to omit population of bankingDetails in response.
  *     tags: [TaxiAssociations]
  *     operationId: linkBankingDetailsForAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns association without populated banking details.
  *     requestBody:
  *       required: true
  *       content:
@@ -455,9 +489,15 @@ export const linkBankingDetails = async (req: Request, res: Response) => {
  * /api/taxi-associations/unlink-banking:
  *   post:
  *     summary: Unlink BankingDetails from Taxi Association
- *     description: Removes existing banking details link.
+ *     description: Removes existing banking details link. Use ?shallow=true to omit population in response.
  *     tags: [TaxiAssociations]
  *     operationId: unlinkBankingDetailsForAssociation
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, returns association without populated banking details.
  *     requestBody:
  *       required: true
  *       content:
