@@ -264,14 +264,21 @@ async function journeyPossibleRoutes() {
     if (to._id === from._id) continue;
     const key = `${from._id}->${to._id}`;
     if (usedPairs.has(key)) continue;
-    const farePrice = Number((20 + Math.random() * 50).toFixed(2));
-    const distance = Number((2 + Math.random() * 40).toFixed(1));
+  const farePrice = Number((20 + Math.random() * 50).toFixed(2));
+  const distance = Number((2 + Math.random() * 40).toFixed(1));
+  // Derived package movement price may differ from passenger fare
+  const price = Number((farePrice * (0.8 + Math.random() * 0.6)).toFixed(2));
+  const driverSplit = Math.floor(20 + Math.random() * 40); // simplistic percentage share
+  const associationSplit = 100 - driverSplit;
     try {
       usedPairs.add(key);
       await postJSON(`${API_BASE}/taxi-ranks/link-destination`, {
         taxiRankId: from._id,
         destinationRankId: to._id,
         farePrice,
+        price,
+        driverSplit,
+        associationSplit,
         distance,
       });
       created.push({ type: "PossibleRoute", _id: key, name: `${from.name} -> ${to.name}` });
@@ -283,6 +290,9 @@ async function journeyPossibleRoutes() {
           taxiRankId: to._id,
           destinationRankId: from._id,
           farePrice,
+          price,
+          driverSplit,
+          associationSplit,
           distance,
         });
         created.push({ type: "PossibleRoute", _id: reverseKey, name: `${to.name} -> ${from.name}` });
@@ -569,13 +579,12 @@ async function journeyTrips() {
         if (match && match.distance) distanceSum += match.distance;
       }
       if (!distanceSum) distanceSum = 5 + Math.random() * 30;
-      const price = Number((distanceSum * (3 + Math.random())).toFixed(2));
-      // Create trip (server auto-generates route)
+      // Create trip (server auto-generates route & derives price)
       let trip: any;
       try {
-        trip = await postJSON(`${API_BASE}/trip-details`, { price, origin, destination });
+        trip = await postJSON(`${API_BASE}/trip-details`, { origin, destination });
         created.push({ type: "Trip", _id: trip._id, name: `Trip-${i + 1}` });
-        journeyResult(ctx, true, `Trip ${trip._id} created (origin->dest path length=${path.length})`);
+        journeyResult(ctx, true, `Trip ${trip._id} created (path length=${path.length}, derived price=${trip.price})`);
       } catch (e: any) {
         journeyResult(ctx, false, `Trip create failed: ${e.message}`);
         continue;
