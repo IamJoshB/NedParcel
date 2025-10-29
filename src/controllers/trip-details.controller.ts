@@ -210,7 +210,8 @@ import mongoose from "mongoose";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
