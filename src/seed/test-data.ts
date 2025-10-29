@@ -39,11 +39,11 @@
  *     - POST /api/marshall-details
  *     - POST /api/marshall-details/link-rank
  *     - POST /api/marshall-details/link-association
- *  8. Trips Journey (multi-leg, then leg driver/route linking)
- *     - GET  /api/taxi-ranks (to discover embedded routes)
- *     - GET  /api/driver-details
- *     - POST /api/trip-details
- *     - POST /api/trip-details/link-driver-and-route
+ *  8. Trips Journey (auto-generated route, then leg driver linking)
+ *     - GET  /api/taxi-ranks (to build adjacency graph)
+ *     - GET  /api/driver-details (to choose eligible drivers per leg)
+ *     - POST /api/trip-details (price, origin, destination only; route auto-generated)
+ *     - POST /api/trip-details/link-driver (per leg; validates driver linked to leg's origin rank)
  *  9. Parcels Journey (links to trip leg when possible)
  *     - POST /api/parcel-details
  *
@@ -343,13 +343,12 @@ async function journeyParcels() {
     const receiverPhone = `+27 7${Math.floor(Math.random() * 9)} ${Math.floor(
       100 + Math.random() * 900
     )} ${Math.floor(1000 + Math.random() * 9000)}`;
-    const price = Number((50 + Math.random() * 150).toFixed(2));
     const notes = Math.random() < 0.25 ? "Fragile" : undefined;
     try {
       // Attempt to link parcel to an existing trip leg if available
       let tripRef: string | undefined;
       let legIndex: number | undefined;
-      let possibleRouteRef: string | undefined;
+  // leg details will implicitly provide route context via trip; no direct possibleRoute now
       if (trips.length) {
         const tripEntry = trips[Math.floor(Math.random() * trips.length)];
         // We need to GET the trip to inspect number of legs and route.details IDs
@@ -365,7 +364,7 @@ async function journeyParcels() {
             if (leg && leg.details) {
               tripRef = tripEntry._id;
               legIndex = chosenLegIndex;
-              possibleRouteRef = leg.details._id || leg.details; // depending on populate state
+              // route.details captured implicitly through trip leg; no separate parcel field retained
             }
           }
         } catch (e: any) {
@@ -391,14 +390,10 @@ async function journeyParcels() {
             .toUpperCase()}`,
           type: pkg._id,
         },
-        price,
       };
       if (tripRef && legIndex !== undefined) {
         payload.trip = tripRef;
         payload.legIndex = legIndex;
-      }
-      if (possibleRouteRef) {
-        payload.possibleRoute = possibleRouteRef;
       }
       if (notes) payload.notes = notes;
       const parcel = await postJSON(`${API_BASE}/parcel-details`, payload);
@@ -486,96 +481,134 @@ async function journeyDrivers() {
   endJourney(ctx);
 }
 
-// Create trips and then link drivers and routes to each leg
+// Utility: build adjacency from possibleRoutes for BFS path discovery
+function buildAdjacency(possibleRoutes: any[]) {
+  const adj: Record<string, string[]> = {};
+  for (const r of possibleRoutes) {
+    const from = r.fromRank._id || r.fromRank;
+    const to = r.toRank._id || r.toRank;
+    const f = String(from);
+    const t = String(to);
+    adj[f] = adj[f] || [];
+    if (!adj[f].includes(t)) adj[f].push(t);
+  }
+  return adj;
+}
+
+function bfsPath(adj: Record<string, string[]>, start: string, goal: string): string[] | null {
+  if (start === goal) return [start];
+  const q: string[] = [start];
+  const prev: Record<string, string | null> = { [start]: null };
+  while (q.length) {
+    const cur = q.shift()!;
+    if (cur === goal) break;
+    for (const nxt of adj[cur] || []) {
+      if (!(nxt in prev)) {
+        prev[nxt] = cur;
+        q.push(nxt);
+      }
+    }
+  }
+  if (!(goal in prev)) return null;
+  const path: string[] = [];
+  let c: string | null = goal;
+  while (c) {
+    path.push(c);
+    c = prev[c];
+  }
+  return path.reverse();
+}
+
+// Create trips using new auto-generation logic then link eligible drivers to each leg
 async function journeyTrips() {
-  const ctx = startJourney("Trips (multi-leg + driver/route links)");
+  const ctx = startJourney("Trips (auto-generated + driver leg links)");
   try {
-    // Fetch populated ranks (includes possibleRoutes)
-    const ranks: any[] = await getJSON(`${API_BASE}/taxi-ranks`);
-    // Collect all route documents
+    const ranks: any[] = await getJSON(`${API_BASE}/taxi-ranks`); // includes possibleRoutes in shallow form
+    const drivers: any[] = await getJSON(`${API_BASE}/driver-details`);
+    // Extract route documents
     const routeDocs: any[] = [];
     for (const r of ranks) {
       if (Array.isArray(r.possibleRoutes)) {
         for (const route of r.possibleRoutes) {
-          // ensure structure has _id, fromRank, toRank
           if (route && route._id && route.fromRank && route.toRank) {
             routeDocs.push(route);
           }
         }
       }
     }
-    const drivers: any[] = await getJSON(`${API_BASE}/driver-details`);
     if (!routeDocs.length || !drivers.length) {
       journeyInfo(ctx, "Skipping trips (need routes & drivers)");
       endJourney(ctx);
-      return; // need routes & drivers
+      return;
     }
+    const adj = buildAdjacency(routeDocs);
+    const rankIds = ranks.map((r) => r._id);
+    const tripCount = Math.min(5, Math.max(2, rankIds.length));
 
-    const tripCount = Math.min(5, Math.max(2, routeDocs.length));
     for (let i = 0; i < tripCount; i++) {
-      // Choose 1-3 unique routes (simple approach: random sample)
-      const legRoutes: any[] = [];
-      const desiredLegs = Math.min(
-        3,
-        Math.max(1, Math.floor(Math.random() * 3) + 1)
-      );
-      const shuffled = [...routeDocs].sort(() => Math.random() - 0.5);
-      for (const rt of shuffled) {
-        if (legRoutes.length >= desiredLegs) break;
-        // avoid duplicate same from->to in this trip
-        if (!legRoutes.find((l) => l._id === rt._id)) legRoutes.push(rt);
+      // Attempt to find a random origin/destination pair with a path
+      let origin: string | undefined;
+      let destination: string | undefined;
+      let path: string[] | null = null;
+      for (let attempt = 0; attempt < 10 && !path; attempt++) {
+        origin = rankIds[Math.floor(Math.random() * rankIds.length)];
+        destination = rankIds[Math.floor(Math.random() * rankIds.length)];
+        if (origin === destination) continue;
+        path = bfsPath(adj, String(origin), String(destination));
       }
-      if (!legRoutes.length) continue;
-
-      const origin = legRoutes[0].fromRank._id || legRoutes[0].fromRank; // depending on population
-      const destination =
-        legRoutes[legRoutes.length - 1].toRank._id ||
-        legRoutes[legRoutes.length - 1].toRank;
-      const fullDistance = legRoutes.reduce(
-        (sum, r) => sum + (r.distance || 0),
-        0
-      );
-      const priceBase =
-        legRoutes.reduce((sum, r) => sum + (r.farePrice || 0), 0) ||
-        fullDistance * 5;
-      const routeLegs = legRoutes.map((r, idx) => {
-        // Splits: associationSplit + driverSplit = 100 (roughly)
-        const associationSplit = 60 + Math.floor(Math.random() * 20) - 10; // around 60
-        const driverSplit = 100 - associationSplit;
-        return {
-          leg: idx + 1,
-          associationSplit,
-          driverSplit,
-        };
-      });
-
-      const tripPayload: any = {
-        price: Number(priceBase.toFixed(2)),
-        fullDistance: Number(fullDistance.toFixed(2)),
-        origin,
-        destination,
-        route: routeLegs,
-      };
-
-      let trip;
+      if (!path || !origin || !destination) {
+        journeyResult(ctx, false, "Could not find path for trip candidate");
+        continue;
+      }
+      // Estimate price: sum of distances on path edges (if available) else random
+      let distanceSum = 0;
+      for (let pi = 0; pi < path.length - 1; pi++) {
+        const from = path[pi];
+        const to = path[pi + 1];
+        const match = routeDocs.find((rd) => String(rd.fromRank._id || rd.fromRank) === from && String(rd.toRank._id || rd.toRank) === to);
+        if (match && match.distance) distanceSum += match.distance;
+      }
+      if (!distanceSum) distanceSum = 5 + Math.random() * 30;
+      const price = Number((distanceSum * (3 + Math.random())).toFixed(2));
+      // Create trip (server auto-generates route)
+      let trip: any;
       try {
-        trip = await postJSON(`${API_BASE}/trip-details`, tripPayload);
+        trip = await postJSON(`${API_BASE}/trip-details`, { price, origin, destination });
         created.push({ type: "Trip", _id: trip._id, name: `Trip-${i + 1}` });
-        journeyResult(ctx, true, `Trip ${trip._id} legs=${legRoutes.length}`);
+        journeyResult(ctx, true, `Trip ${trip._id} created (origin->dest path length=${path.length})`);
       } catch (e: any) {
         journeyResult(ctx, false, `Trip create failed: ${e.message}`);
         continue;
       }
-
-      // Link driver and route doc to each leg
-      for (let legIndex = 0; legIndex < legRoutes.length; legIndex++) {
-        const chosenDriver =
-          drivers[Math.floor(Math.random() * drivers.length)];
-        const chosenRoute = legRoutes[legIndex];
+      // Fetch deep trip to inspect legs and fromRank for driver eligibility
+      let deepTrip: any;
+      try {
+        deepTrip = await getJSON(`${API_BASE}/trip-details/${trip._id}?deep=true`);
+      } catch (e: any) {
+        journeyResult(ctx, false, `Deep fetch failed for trip ${trip._id}: ${e.message}`);
+        continue;
+      }
+      if (!Array.isArray(deepTrip.route) || !deepTrip.route.length) {
+        journeyResult(ctx, false, `Trip ${trip._id} has no route legs in deep response`);
+        continue;
+      }
+      // For each leg choose driver whose linkedRanks contains fromRank of leg.details
+      for (const legEntry of deepTrip.route) {
+        const legNumber = legEntry.leg;
+        // leg.details may be populated (with fromRank) due to deep=true
+        const fromRankObj = legEntry.details?.fromRank;
+        const fromRankId = fromRankObj?._id || fromRankObj || undefined;
+        if (!fromRankId) continue;
+        const eligibleDrivers = drivers.filter((d) => Array.isArray(d.linkedRanks) && d.linkedRanks.some((lr: any) => String(lr._id || lr) === String(fromRankId)));
+        if (!eligibleDrivers.length) {
+          journeyInfo(ctx, `No eligible driver for trip ${trip._id} leg ${legNumber}`);
+          continue;
+        }
+        const chosenDriver = eligibleDrivers[Math.floor(Math.random() * eligibleDrivers.length)];
         try {
-          await postJSON(`${API_BASE}/trip-details/link-driver-and-route`, { tripId: trip._id, legIndex, driverId: chosenDriver._id, routeId: chosenRoute._id });
+          await postJSON(`${API_BASE}/trip-details/link-driver`, { tripId: trip._id, leg: legNumber, driverId: chosenDriver._id });
         } catch (e: any) {
-          journeyResult(ctx, false, `Trip ${trip._id} leg ${legIndex} link failed: ${e.message}`);
+          journeyResult(ctx, false, `Driver link failed trip ${trip._id} leg ${legNumber}: ${e.message}`);
         }
       }
     }
