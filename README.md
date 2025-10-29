@@ -1,115 +1,147 @@
 # NedParcel API
 
-## Overview
-NedParcel is an Express + TypeScript + Mongoose REST API for managing taxi transport domain entities (Taxi Ranks, Possible Routes, Trips, Drivers, Marshalls, Associations, Banking Details, Parcels, Package Types). It supports multi-leg trips, automatic shortest-route generation, flexible parcel leg movement, and depth-controlled population.
+## 1. Overview
+NedParcel is an Express + TypeScript + Mongoose REST API for the taxi transport domain: Taxi Ranks, Directed Possible Routes, Trips (auto-generated multi-leg paths), Drivers, Marshalls, Taxi Associations, Banking Details, Parcels, and Package Types. It emphasizes:
 
-## Key Domain Concepts
-- TaxiRank: Physical rank. Linked to other ranks via `PossibleRoute` documents (directed edges). A reverse route is automatically created for symmetry after each forward route creation.
-- PossibleRoute: Represents travel between two ranks (`fromRank` -> `toRank`) with distance & fare pricing (used to aggregate trip distance and pricing logic).
-- TaxiAssociation: Organisation that can be linked to ranks and drivers/marshalls. Optionally populates `BankingDetails`.
-- Driver: Can link multiple ranks, an association, and banking details. Supports document/image uploads (memory storage; implement persistence later).
-- Marshall: Linked to a single rank and optional association.
-- Trip: A multi-leg journey with `origin` and `destination` rank references, computed `fullDistance` (sum of leg route distances), and a `route` array of legs. Each leg links a driver (`driver`) and a possible route (`details`). During creation/update, legs can be supplied using helper properties `driverId` and `routeId` which are mapped internally.
-- Parcel: Shipped item that embeds a `package` (with `type` reference) and can optionally attach to a specific trip leg (`trip` + `legIndex`). Parcel no longer stores `originRank`, `destinationRank`, `possibleRoute`, or `price` fields—these are derived or inferred from its linked Trip legs. Movement across legs (and optionally across trips) is supported.
-- PackageType: Lookup entity defining allowed package classifications. Used inside parcel.package.type.
+* Automatic shortest-hop trip route generation (BFS across `PossibleRoute` edges)
+* Strict immutability of trip legs after creation (route is read-only)
+* Driver-to-leg assignment with validation against rank eligibility
+* Parcel movement across trip legs without storing redundant origin/destination data
+* Depth-controlled population (`?deep` / `?shallow`) to limit payload size
+* Journey-based seeding via `src/seed/test-data.ts` using only HTTP calls
 
-## Trip Route Auto-Generation (Shortest Hop)
-If you provide `origin` and `destination` for a new Trip but omit the `route` array, the system performs a breadth-first search (BFS) across `PossibleRoute` edges to build the shortest-hop path. Each discovered hop becomes a leg; leg numbering starts at `1` and increments. You may still explicitly pass a `route` array if you need precise driver/route assignments or a non-shortest path.
+## 2. Domain Model Summary
+| Entity | Purpose | Key Relationships |
+|--------|---------|-------------------|
+| TaxiRank | Physical rank / node | Has many outgoing `PossibleRoute` edges; can link `TaxiAssociation` |
+| PossibleRoute | Directed edge from one rank to another with `distance` + `farePrice` | `fromRank` -> `toRank` (reverse is auto-created) |
+| TaxiAssociation | Organization managing drivers/marshalls | Optional `BankingDetails`; linkable to ranks |
+| BankingDetails | Account metadata | Linked to `TaxiAssociation` or a `Driver` |
+| Driver | Operates taxis | Links multiple ranks (`linkedRanks`), an association, banking details; can be assigned per trip leg |
+| Marshall | Oversees operations at a rank | Links single rank + optional association |
+| PackageType | Lookup for parcel classification | Referenced inside `parcel.package.type` |
+| Parcel | Shipped item | References `package.type`; optionally linked to a trip leg (`trip` + `legIndex`); server generates `trackingNumber` & `receiverOtp` |
+| Trip | Multi-leg journey | Server auto-generates legs from `origin` -> `destination`; legs contain `details` (PossibleRoute) and optional `driver` |
 
-### Leg Input Mapping & Defaults
-- In `CreateTripRequest` and leg replacement during `UpdateTripRequest`, you can supply `driverId` and `routeId` per leg; these are internally assigned to `driver` and `details`.
-- If a leg number (`leg`) is omitted in input it defaults to `1` (legacy support); subsequent normalization ensures sequential leg ordering.
-- `fullDistance` is server-calculated; clients should NOT send it.
+### Removed / Deprecated Fields
+Parcel no longer stores: `originRank`, `destinationRank`, `possibleRoute`, or `price`. All contextual route information is derived from its linked trip leg.
 
-## Parcel Movement & Tracking
-- Parcels can be re-assigned to a different leg (and optionally a different trip) via `POST /api/parcel-details/move-leg` with `{ parcelId, legIndex, tripId? }`.
-- `trackingNumber` and any receiver verification OTP are generated server-side during parcel creation.
-- Removing legacy fields simplified parcel state; route context is always derived from the linked trip + leg index.
-
-## Population Depth Strategy
-To balance payload size vs relational completeness, several endpoints accept query parameters to control depth:
-
-## Population Depth Strategy
-To balance payload size vs relational completeness, several endpoints accept query parameters to control depth:
-
-### Query Parameters
-- `?deep=true` (Trips & Parcels): Returns full nested population.
-  - Trips deep mode populates: originRank, destinationRank, route.driver, route.association, route.details (with fromRank, toRank).
-  - Parcels deep mode populates: package.type and trip with full deep trip population (including nested route legs). Origin/destination and route info are inferred from trip legs.
-- `?shallow=true` (Taxi Ranks): Returns reduced population.
-  - Shallow: `possibleRoutes` (no nested rank documents) + `taxiAssociations` (without bankingDetails).
-  - Deep (default): `possibleRoutes` with fromRank & toRank, and `taxiAssociations` with their bankingDetails.
-
-If neither parameter is supplied for the respective resource, the default is:
-- Trips: Shallow (omit association + origin/destination deep nesting).
-- Parcels: Shallow.
-- Taxi Ranks: Deep.
-
-## Filtering Values Endpoints
-Lightweight endpoints provide minimal projection (id + display fields) for dropdowns and seeding orchestration. These improve performance and reduce over-fetching during initial linking operations.
-
-Examples (paths illustrative):
-- `GET /api/taxi-ranks/filtering-values`
-- `GET /api/taxi-associations/filtering-values`
-- `GET /api/possible-routes/filtering-values`
-- `GET /api/drivers/filtering-values`
-- `GET /api/package-types/filtering-values`
-
-## Seeding Journeys
-Seeding uses real HTTP endpoints (not direct DB writes) to exercise validations & population. Typical journey order:
-1. Create base ranks & associations + banking details.
-2. Create symmetric possible routes between ranks (reverse automatically generated).
-3. Create drivers and marshalls; link ranks/associations and banking.
-4. (Optional) Fetch filtering values to drive UI/link decisions.
-5. Create trips: either provide explicit `route` legs or rely on BFS auto-generation with `origin` + `destination` only.
-6. Link drivers/routes per leg if not supplied or need adjustment.
-7. Create parcels with embedded package info; optionally link to a trip leg immediately.
-8. Move parcels between trip legs as operational changes occur.
-
-## Linking Patterns
-- Rank <-> Rank: `POST /api/taxi-ranks/:id/destinations` creates a PossibleRoute (and its reverse).
-- Trip leg linking (legacy / may be deprecated): `PUT /api/trips/:tripId/legs/:legIndex/link` to attach driver + route if not using direct leg creation mapping.
-- Parcel to trip leg (legacy direct link): `PUT /api/parcels/:id/link-trip-leg` with `{ tripId, legIndex }`.
-- Parcel move between legs (preferred operational update): `POST /api/parcel-details/move-leg` with `{ parcelId, legIndex, tripId? }`.
-- Driver link operations: rank, bankingDetails, association endpoints all return fully populated driver.
-
-### Trip Leg Defaults Recap
-If a leg number isn't supplied for a route entry it defaults to `1`; legs are then normalized sequentially. Provide explicit numbers for clarity when multiple legs are sent.
-
-## Example Deep Fetch
+## 3. Trip Auto-Generation & Leg Semantics
+`POST /api/trip-details` accepts only:
+```json
+{ "price": 123.45, "origin": "<TaxiRankId>", "destination": "<TaxiRankId>" }
 ```
-GET /api/trips?deep=true
+The server performs a BFS to find the shortest-hop path between ranks. For each hop an immutable leg is created. Stored fields:
+* `route[]` (readOnly): legs with `leg`, `associationSplit` (default 0), `driverSplit` (default 0), `details` (PossibleRoute reference), optional `driver`
+* `fullDistance` (readOnly): Sum of `distance` across leg `details`
+
+You CANNOT supply custom legs or modify them after creation. To add drivers use the driver linking endpoints.
+
+### Driver ↔ Trip Leg Linking
+* `POST /api/trip-details/link-driver` `{ tripId, leg, driverId }`
+  * Validates the driver has a linked rank matching the leg's `fromRank` (origin of its `PossibleRoute`).
+* `POST /api/trip-details/unlink-driver` `{ tripId, leg }`
+  * Removes driver assignment from that leg.
+
+If no eligible driver exists for a leg, linking returns a validation error.
+
+## 4. Parcel Lifecycle & Movement
+`POST /api/parcel-details` creates a parcel with an embedded package object:
+```json
+{
+  "senderIdNumber": "8001011234567",
+  "senderFirstName": "Thabo",
+  "senderLastName": "Mokoena",
+  "senderPhone": "+27 81 555 1234",
+  "receiverPhone": "+27 72 555 9876",
+  "package": { "identifier": "PKG-ABC123", "type": "<PackageTypeId>" },
+  "trip": "<TripId?>",
+  "legIndex": 0
+}
 ```
-Response includes nested driver, association, and route.rank details for each leg.
+Server responses include `trackingNumber` and `receiverOtp` (readOnly).
 
-## File Uploads
-Driver creation/update supports memory-based uploads (Multer) for documents/photos. Validate sizes & mime types client-side.
+Move a parcel to another leg (and optionally a different trip):
+* `POST /api/parcel-details/move-leg` `{ parcelId, legIndex, tripId? }`
 
-## Error Handling
-Consistent JSON structure:
+## 5. Depth-Controlled Population
+| Resource | Query Param | Default | Deep Population Adds |
+|----------|-------------|---------|----------------------|
+| Trip | `?deep=true` | Shallow | origin, destination, route.driver, route.association, route.details (with fromRank & toRank) |
+| Parcel | `?deep=true` | Shallow | package.type, trip (deep trip population) |
+| TaxiRank | `?shallow=true` | Deep | Shallow omits nested rank docs in `possibleRoutes` and banking in associations |
+
+## 6. Filtering Values Endpoints
+Lightweight lookups (id + label) for UI / seeding:
+* `GET /api/taxi-ranks/filtering-values`
+* `GET /api/taxi-associations/filtering-values`
+* `GET /api/driver-details/filtering-values`
+* `GET /api/package-types/filtering-values`
+
+## 7. Seeding (Journey Script)
+Run the journey-based seeding script which exercises only HTTP endpoints:
+```bash
+npm run dev      # start API
+npm run seed     # executes src/seed/test-data.ts
 ```
-{ "message": "Human readable", "error": <optional raw error> }
+Journeys executed in order:
+1. Package Types
+2. Associations + Banking (and link banking to associations)
+3. Taxi Ranks
+4. Rank ↔ Association Linking
+5. Possible Routes (forward + auto-generated reverse)
+6. Drivers (with banking + association + rank links)
+7. Marshalls
+8. Trips (auto-generated path; afterward driver leg linking with validation)
+9. Parcels (optional trip leg linkage at creation)
+
+## 8. Error Handling Contract
+All error responses:
+```json
+{ "message": "Human readable summary", "error": "Optional debug detail" }
 ```
 
-## Extensibility Notes / Next Steps
-- Swagger alignment: ensure Trip `route` becomes optional when auto-generation is used (current implementation supports omission with origin/destination).
-- Deprecate legacy link/unlink endpoints once direct leg mapping is fully adopted.
-- Caching strategy for deep trip/parcel fetches (Redis or selective projections).
-- Pagination & projection parameters for high-volume collections.
-- Rate limiting for upload endpoints.
+## 9. Swagger / OpenAPI Notes
+Important schema properties:
+* Trip: `route` (array, readOnly), `fullDistance` (number, readOnly)
+* Parcel: `trackingNumber` & `receiverOtp` (readOnly), `trip` optional
+* PossibleRoute: `farePrice`, `distance`, `fromRank`, `toRank` (reverse created automatically by rank destination linking endpoint)
+* Driver linking endpoint enforces origin rank eligibility
 
-## Running
-Install dependencies and start the server:
+## 10. Driver & Marshall Operations
+Driver endpoints allow linking/unlinking of ranks, banking details, and associations; responses are populated. Marshall endpoints similarly link rank & association.
+
+## 11. File Uploads (Driver)
+Endpoints (ID document, permit, license disk, photo) use memory storage; persist to durable storage (S3 / local disk) in future.
+
+## 12. Extensibility Roadmap
+* Pagination & selective projections (`fields` query) for high-volume lists
+* Caching deep trip responses
+* Rate limiting & auth (JWT) layer
+* Soft deletes and audit trails for compliance
+* Bulk driver assignment heuristics (e.g., capacity / availability tracking)
+
+## 13. Running Locally
 ```bash
 npm install
 npm run dev
 ```
-
-## Environment Variables (sample)
-```
+Environment variables:
+```bash
 MONGO_URI=mongodb://localhost:27017/nedparcel
 PORT=3000
 ```
 
-## License
+## 14. Quick Reference (Core Endpoints)
+| Action | Method | Path |
+|--------|--------|------|
+| Create Trip | POST | /api/trip-details |
+| Link Driver to Leg | POST | /api/trip-details/link-driver |
+| Unlink Driver from Leg | POST | /api/trip-details/unlink-driver |
+| Move Parcel Leg | POST | /api/parcel-details/move-leg |
+| Link Rank Destination (creates forward + reverse) | POST | /api/taxi-ranks/link-destination |
+| Link Rank Association | POST | /api/taxi-ranks/link-association |
+
+## 15. License
 Proprietary / Internal Use Only
+
