@@ -139,7 +139,20 @@ Environment variables:
 ```bash
 MONGO_URI=mongodb://localhost:27017/nedparcel
 PORT=3000
+CORS_ALLOWED_ORIGINS=*
 ```
+
+### 13.1 CORS Configuration
+The API enables CORS globally.
+
+Behavior:
+* By default (`CORS_ALLOWED_ORIGINS=*`) every origin is allowed.
+* Provide a comma separated list to restrict, e.g.
+  * `CORS_ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com`
+* Requests with an Origin header not in the allow‑list receive a CORS error.
+* Preflight `OPTIONS` is automatically handled and standard headers / methods are exposed.
+
+If you run into blocked browser requests ensure you are setting the correct Origin and that it matches one of the configured domains.
 
 ## 14. Quick Reference (Core Endpoints)
 | Action | Method | Path |
