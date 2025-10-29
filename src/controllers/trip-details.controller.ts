@@ -55,7 +55,8 @@ import mongoose from "mongoose";
  *           $ref: '#/components/schemas/ObjectId'
  *         route:
  *           type: array
- *           description: Ordered legs; optional on create if origin & destination provided (BFS auto-generation).
+ *           readOnly: true
+ *           description: Ordered auto-generated legs derived from origin & destination.
  *           items:
  *             $ref: '#/components/schemas/TripLeg'
  *         createdAt:
@@ -72,7 +73,7 @@ import mongoose from "mongoose";
  *         - destination
  *     CreateTripRequest:
  *       type: object
- *       description: Provide either an explicit 'route' OR 'origin' & 'destination' for auto-generation.
+ *       description: Input for trip creation; route is always auto-generated (shortest hop) from origin to destination.
  *       properties:
  *         price:
  *           type: number
@@ -80,31 +81,13 @@ import mongoose from "mongoose";
  *           $ref: '#/components/schemas/ObjectId'
  *         destination:
  *           $ref: '#/components/schemas/ObjectId'
- *         route:
- *           type: array
- *           description: Explicit legs (omit for auto-generation).
- *           items:
- *             type: object
- *             properties:
- *               leg:
- *                 type: integer
- *               associationSplit:
- *                 type: number
- *               driverSplit:
- *                 type: number
- *               driverId:
- *                 $ref: '#/components/schemas/ObjectId'
- *               routeId:
- *                 $ref: '#/components/schemas/ObjectId'
- *             required:
- *               - leg
  *       required:
  *         - price
  *         - origin
  *         - destination
  *     UpdateTripRequest:
  *       type: object
- *       description: Partial update; supply 'route' (TripLeg objects) OR 'legs' (mapping with driverId/routeId) to replace legs.
+ *       description: Partial update of trip metadata (price/origin/destination). Route and legs cannot be modified directly once created.
  *       properties:
  *         price:
  *           type: number
@@ -112,30 +95,6 @@ import mongoose from "mongoose";
  *           $ref: '#/components/schemas/ObjectId'
  *         destination:
  *           $ref: '#/components/schemas/ObjectId'
- *         route:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/TripLeg'
- *         legs:
- *           type: array
- *           description: Replacement leg definitions (mapping style).
- *           items:
- *             type: object
- *             properties:
- *               leg:
- *                 type: integer
- *               associationSplit:
- *                 type: number
- *               driverSplit:
- *                 type: number
- *               driverId:
- *                 $ref: '#/components/schemas/ObjectId'
- *               routeId:
- *                 $ref: '#/components/schemas/ObjectId'
- *             required:
- *               - leg
- *               - associationSplit
- *               - driverSplit
  *     LinkDriverAndRouteRequest:
  *       type: object
  *       properties:
@@ -211,7 +170,7 @@ import mongoose from "mongoose";
 * /api/trip-details:
 *   post:
 *     summary: Create a Trip
-*     description: Creates a new trip. If 'route' omitted and origin & destination provided, shortest-hop route auto-generated.
+*     description: Creates a new trip. Route is auto-generated (shortest-hop) from origin to destination; client must not supply route legs.
  *     tags: [Trips]
  *     operationId: createTrip
 *     parameters:
@@ -248,123 +207,96 @@ import mongoose from "mongoose";
  */
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    // Transform incoming route array with driverId/routeId into Trip schema shape
-    const { route, price, origin, destination, ...rest } = req.body as any;
-
-    let effectiveRoute = route;
-    // Auto-generate shortest hop route if origin & destination provided and no route legs specified
-    if ((!effectiveRoute || !effectiveRoute.length) && origin && destination) {
-      // BFS over PossibleRoute graph
-      const PossibleRoute = mongoose.model("PossibleRoute");
-      const edges = await PossibleRoute.find({
-        fromRank: { $exists: true },
-        toRank: { $exists: true },
-      })
-        .select("fromRank toRank distance farePrice")
-        .lean();
-      const adjacency: Record<string, string[]> = {};
-      for (const e of edges) {
-        const from = String(e.fromRank);
-        const to = String(e.toRank);
-        adjacency[from] = adjacency[from] || [];
-        adjacency[from].push(to);
+    const { price, origin, destination, ...rest } = req.body as any;
+    if (!origin || !destination) {
+      return res.status(400).json({
+        message: "origin and destination are required to auto-generate route",
+      });
+    }
+    // Fetch all possible routes to construct graph
+    const PossibleRoute = mongoose.model("PossibleRoute");
+    const edges = await PossibleRoute.find({})
+      .select("fromRank toRank distance farePrice")
+      .lean();
+    const adjacency: Record<string, string[]> = {};
+    for (const e of edges) {
+      const from = String(e.fromRank);
+      const to = String(e.toRank);
+      adjacency[from] = adjacency[from] || [];
+      adjacency[from].push(to);
+    }
+    const start = String(origin);
+    const goal = String(destination);
+    const queue: string[] = [start];
+    const prev: Record<string, string | null> = { [start]: null };
+    let found = false;
+    while (queue.length && !found) {
+      const current = queue.shift()!;
+      if (current === goal) {
+        found = true;
+        break;
       }
-      const start = String(origin);
-      const goal = String(destination);
-      const queue: string[] = [start];
-      const prev: Record<string, string | null> = { [start]: null };
-      let found = false;
-      while (queue.length && !found) {
-        const current = queue.shift()!;
-        if (current === goal) {
-          found = true;
-          break;
+      for (const nxt of adjacency[current] || []) {
+        if (!(nxt in prev)) {
+          prev[nxt] = current;
+          queue.push(nxt);
         }
-        for (const nxt of adjacency[current] || []) {
-          if (!(nxt in prev)) {
-            prev[nxt] = current;
-            queue.push(nxt);
-          }
-        }
-      }
-      if (found) {
-        // Reconstruct path
-        const pathRanks: string[] = [];
-        let cur: string | null = goal;
-        while (cur) {
-          pathRanks.push(cur);
-          cur = prev[cur];
-        }
-        pathRanks.reverse(); // start -> goal
-        // Convert consecutive rank pairs to PossibleRoute ids
-        const rankPairs: Array<{ from: string; to: string }> = [];
-        for (let i = 0; i < pathRanks.length - 1; i++) {
-          rankPairs.push({ from: pathRanks[i], to: pathRanks[i + 1] });
-        }
-        // Index edges by from->to for quick lookup
-        const edgeMap = new Map<string, any>();
-        for (const e of edges)
-          edgeMap.set(`${String(e.fromRank)}->${String(e.toRank)}`, e);
-        effectiveRoute = rankPairs.map((pair, idx) => {
-          const edge = edgeMap.get(`${pair.from}->${pair.to}`);
-          return {
-            leg: idx + 1,
-            associationSplit: 0,
-            driverSplit: 0,
-            routeId: edge?._id, // will be mapped below
-          };
-        });
-      } else {
-        effectiveRoute = [];
       }
     }
-    const mappedRoute = Array.isArray(route)
-      ? route.map((leg: any) => ({
-          leg: leg.leg || 1,
-          associationSplit: leg.associationSplit,
-          driverSplit: leg.driverSplit,
-          driver: leg.driverId
-            ? new mongoose.Types.ObjectId(leg.driverId)
-            : undefined,
-          details: leg.routeId
-            ? new mongoose.Types.ObjectId(leg.routeId)
-            : undefined,
-        }))
-      : Array.isArray(effectiveRoute)
-      ? effectiveRoute.map((leg: any) => ({
-          leg: leg.leg || 1,
-          associationSplit: leg.associationSplit || 0,
-          driverSplit: leg.driverSplit || 0,
-          driver: leg.driverId
-            ? new mongoose.Types.ObjectId(leg.driverId)
-            : undefined,
-          details: leg.routeId
-            ? new mongoose.Types.ObjectId(leg.routeId)
-            : undefined,
-        }))
-      : [];
-    const trip = new Trip({
-      price,
-      origin,
-      destination,
-      route: mappedRoute,
-      ...rest,
-    });
-    const savedTrip = await trip.save();
-    const deep = req.query.deep === "true";
-    const populated = deep
-      ? await Trip.findById(savedTrip._id)
-          .populate("origin destination")
-          .populate({
-            path: "route.driver",
-          })
-          .populate({
-            path: "route.details",
-            populate: ["fromRank", "toRank"],
-          })
-          .populate({ path: "route.association" })
-      : savedTrip;
-    res.status(201).json(populated);
+    let mappedRoute: any[] = [];
+    if (found) {
+      // Reconstruct path of ranks
+      const pathRanks: string[] = [];
+      let cur: string | null = goal;
+      while (cur) {
+        pathRanks.push(cur);
+        cur = prev[cur];
+      }
+      pathRanks.reverse();
+      // Build leg entries from consecutive rank pairs
+      const edgeMap = new Map<string, any>();
+      for (const e of edges) {
+        edgeMap.set(`${String(e.fromRank)}->${String(e.toRank)}`, e);
+      }
+      let fullDistance = 0;
+      mappedRoute = pathRanks.slice(0, -1).map((fromRank, idx) => {
+        const toRank = pathRanks[idx + 1];
+        const edge = edgeMap.get(`${fromRank}->${toRank}`);
+        if (edge?.distance) fullDistance += edge.distance;
+        return {
+          leg: idx + 1,
+          associationSplit: 0,
+          driverSplit: 0,
+          details: edge?._id,
+        };
+      });
+      const trip = new Trip({
+        price,
+        origin,
+        destination,
+        route: mappedRoute,
+        fullDistance,
+        ...rest,
+      });
+      const savedTrip = await trip.save();
+      const deep = req.query.deep === "true";
+      const populated = deep
+        ? await Trip.findById(savedTrip._id)
+            .populate("origin destination")
+            .populate({ path: "route.driver" })
+            .populate({
+              path: "route.details",
+              populate: ["fromRank", "toRank"],
+            })
+            .populate({ path: "route.association" })
+        : savedTrip;
+      return res.status(201).json(populated);
+    } else {
+      return res.status(400).json({
+        message: "No route could be auto-generated between origin and destination",
+      });
+    }
+      // unreachable fallback removed (always returns in found/else)
   } catch (error) {
     res.status(500).json({ message: "Error creating trip", error });
   }
@@ -486,7 +418,7 @@ export const getTripById = async (req: Request, res: Response) => {
 * /api/trip-details/{id}:
 *   put:
 *     summary: Update a Trip
-*     description: Partially updates metadata or replaces legs. Provide 'route' OR 'legs'. Use ?deep=true for nested population in response.
+*     description: Partially updates metadata (price/origin/destination). Legs are immutable post creation. Use ?deep=true for nested population in response.
  *     tags: [Trips]
  *     operationId: updateTrip
  *     parameters:
@@ -536,40 +468,40 @@ export const getTripById = async (req: Request, res: Response) => {
 export const updateTrip = async (req: Request, res: Response) => {
   try {
     const deep = req.query.deep === "true";
-    const { legs, route, price, ...rest } = req.body as any;
-    let updatePayload: any = { ...rest };
-    // Allow either 'legs' (preferred) or full 'route' array for replacement
-    const incoming = legs || route;
-    if (incoming) {
-      updatePayload.route = incoming.map((leg: any) => ({
-        leg: leg.leg || 1,
-        associationSplit: leg.associationSplit,
-        driverSplit: leg.driverSplit,
-        driver: leg.driverId
-          ? new mongoose.Types.ObjectId(leg.driverId)
-          : undefined,
-        details: leg.routeId
-          ? new mongoose.Types.ObjectId(leg.routeId)
-          : undefined,
-      }));
+    const { price, origin, destination } = req.body as any;
+    const existing = await Trip.findById(req.params.id).populate({
+      path: "route.details",
+      select: "distance fromRank toRank",
+    });
+    if (!existing) return res.status(404).json({ message: "Trip not found" });
+    if (price !== undefined) existing.price = price;
+    if (origin) existing.origin = origin;
+    if (destination) existing.destination = destination;
+    // Recompute fullDistance from populated route.details
+    let fullDistance = 0;
+    for (const leg of existing.route as any[]) {
+      if (leg.details && (leg.details as any).distance) {
+        fullDistance += (leg.details as any).distance;
+      } else if (leg.details) {
+        // fetch if not populated distance
+        const pr: any = await mongoose
+          .model("PossibleRoute")
+          .findById(leg.details)
+          .select("distance")
+          .lean();
+        if (pr && typeof pr.distance === "number") fullDistance += pr.distance;
+      }
     }
-    if (price !== undefined) updatePayload.price = price;
-    const updatedTrip = await Trip.findByIdAndUpdate(
-      req.params.id,
-      updatePayload,
-      { new: true }
-    );
-    if (!updatedTrip)
-      return res.status(404).json({ message: "Trip not found" });
-    let trip: any = updatedTrip;
-    if (deep) {
-      trip = await Trip.findById(updatedTrip._id)
-        .populate("origin destination")
-        .populate({ path: "route.driver" })
-        .populate({ path: "route.association" })
-        .populate({ path: "route.details", populate: ["fromRank", "toRank"] });
-    }
-    res.status(200).json(trip);
+    existing.fullDistance = fullDistance;
+    const saved = await existing.save();
+    const populated = deep
+      ? await Trip.findById(saved._id)
+          .populate("origin destination")
+          .populate({ path: "route.driver" })
+          .populate({ path: "route.association" })
+          .populate({ path: "route.details", populate: ["fromRank", "toRank"] })
+      : saved;
+    res.status(200).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Error updating trip", error });
   }
