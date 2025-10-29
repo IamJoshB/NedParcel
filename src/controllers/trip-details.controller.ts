@@ -44,6 +44,8 @@ import mongoose from "mongoose";
  *         price:
  *           type: number
  *           example: 120.5
+ *           readOnly: true
+ *           description: Sum of leg route prices (server-calculated from PossibleRoute.price values).
  *         fullDistance:
  *           type: number
  *           example: 42.7
@@ -68,29 +70,23 @@ import mongoose from "mongoose";
  *           format: date-time
  *           readOnly: true
  *       required:
- *         - price
  *         - origin
  *         - destination
  *     CreateTripRequest:
  *       type: object
- *       description: Input for trip creation; route is always auto-generated (shortest hop) from origin to destination.
+ *       description: Input for trip creation; route auto-generated (shortest hop). Price is derived automatically (no price field allowed).
  *       properties:
- *         price:
- *           type: number
  *         origin:
  *           $ref: '#/components/schemas/ObjectId'
  *         destination:
  *           $ref: '#/components/schemas/ObjectId'
  *       required:
- *         - price
  *         - origin
  *         - destination
  *     UpdateTripRequest:
  *       type: object
- *       description: Partial update of trip metadata (price/origin/destination). Route and legs cannot be modified directly once created.
+ *       description: Partial update of trip metadata (origin/destination). Price/route are immutable and recalculated automatically.
  *       properties:
- *         price:
- *           type: number
  *         origin:
  *           $ref: '#/components/schemas/ObjectId'
  *         destination:
@@ -258,7 +254,7 @@ import mongoose from "mongoose";
  */
 export const createTrip = async (req: Request, res: Response) => {
   try {
-    const { price, origin, destination, ...rest } = req.body as any;
+    const { origin, destination, ...rest } = req.body as any;
     if (!origin || !destination) {
       return res.status(400).json({
         message: "origin and destination are required to auto-generate route",
@@ -267,7 +263,7 @@ export const createTrip = async (req: Request, res: Response) => {
     // Fetch all possible routes to construct graph
     const PossibleRoute = mongoose.model("PossibleRoute");
     const edges = await PossibleRoute.find({})
-      .select("fromRank toRank distance farePrice")
+      .select("fromRank toRank distance farePrice price driverSplit associationSplit")
       .lean();
     const adjacency: Record<string, string[]> = {};
     for (const e of edges) {
@@ -310,19 +306,21 @@ export const createTrip = async (req: Request, res: Response) => {
         edgeMap.set(`${String(e.fromRank)}->${String(e.toRank)}`, e);
       }
       let fullDistance = 0;
+      let totalPrice = 0;
       mappedRoute = pathRanks.slice(0, -1).map((fromRank, idx) => {
         const toRank = pathRanks[idx + 1];
         const edge = edgeMap.get(`${fromRank}->${toRank}`);
         if (edge?.distance) fullDistance += edge.distance;
+        if (edge?.price) totalPrice += edge.price;
         return {
           leg: idx + 1,
-          associationSplit: 0,
-          driverSplit: 0,
+          associationSplit: edge?.associationSplit ?? 0,
+          driverSplit: edge?.driverSplit ?? 0,
           details: edge?._id,
         };
       });
       const trip = new Trip({
-        price,
+        price: totalPrice,
         origin,
         destination,
         route: mappedRoute,
@@ -519,17 +517,17 @@ export const getTripById = async (req: Request, res: Response) => {
 export const updateTrip = async (req: Request, res: Response) => {
   try {
     const deep = req.query.deep === "true";
-    const { price, origin, destination } = req.body as any;
+    const { origin, destination } = req.body as any;
     const existing = await Trip.findById(req.params.id).populate({
       path: "route.details",
-      select: "distance fromRank toRank",
+      select: "distance price fromRank toRank driverSplit associationSplit",
     });
     if (!existing) return res.status(404).json({ message: "Trip not found" });
-    if (price !== undefined) existing.price = price;
     if (origin) existing.origin = origin;
     if (destination) existing.destination = destination;
     // Recompute fullDistance from populated route.details
     let fullDistance = 0;
+    let totalPrice = 0;
     for (const leg of existing.route as any[]) {
       if (leg.details && (leg.details as any).distance) {
         fullDistance += (leg.details as any).distance;
@@ -538,11 +536,28 @@ export const updateTrip = async (req: Request, res: Response) => {
         const pr: any = await mongoose
           .model("PossibleRoute")
           .findById(leg.details)
-          .select("distance")
+          .select("distance price driverSplit associationSplit")
           .lean();
         if (pr && typeof pr.distance === "number") fullDistance += pr.distance;
+        if (pr && typeof pr.price === "number") totalPrice += pr.price;
+        // update splits if empty
+        if (pr) {
+          if (typeof pr.driverSplit === "number") leg.driverSplit = pr.driverSplit;
+          if (typeof pr.associationSplit === "number") leg.associationSplit = pr.associationSplit;
+        }
+      }
+      // if details already populated include its price
+      if (leg.details && (leg.details as any).price) {
+        totalPrice += (leg.details as any).price;
+      }
+      if (leg.details && (leg.details as any).driverSplit !== undefined) {
+        leg.driverSplit = (leg.details as any).driverSplit;
+      }
+      if (leg.details && (leg.details as any).associationSplit !== undefined) {
+        leg.associationSplit = (leg.details as any).associationSplit;
       }
     }
+    existing.price = totalPrice;
     existing.fullDistance = fullDistance;
     const saved = await existing.save();
     const populated = deep
