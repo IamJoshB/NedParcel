@@ -24,6 +24,7 @@ import mongoose from "mongoose";
  *         trackingNumber:
  *           type: string
  *           example: TRK-20251019-0001
+ *           readOnly: true
  *         senderIdNumber:
  *           type: string
  *           example: 8001015009087
@@ -42,6 +43,7 @@ import mongoose from "mongoose";
  *         receiverOtp:
  *           type: string
  *           example: 458912
+ *           readOnly: true
  *         package:
  *           type: object
  *           properties:
@@ -151,7 +153,8 @@ import mongoose from "mongoose";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
@@ -168,13 +171,19 @@ function generateTrackingNumber(): string {
 }
 
 /**
- * @swagger
- * /api/parcel-details:
- *   post:
- *     summary: Create a Parcel
- *     description: Registers a new parcel and generates tracking number & OTP.
+* @swagger
+* /api/parcel-details:
+*   post:
+*     summary: Create a Parcel
+*     description: Registers a new parcel and generates tracking number & OTP. Use ?deep=true to return fully populated trip & package type.
  *     tags: [Parcels]
  *     operationId: createParcel
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates package.type and trip (with nested legs).
  *     requestBody:
  *       required: true
  *       content:
@@ -236,13 +245,19 @@ export const createParcel = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details:
- *   get:
- *     summary: Get all Parcels
- *     description: Returns all parcels with populated refs.
+* @swagger
+* /api/parcel-details:
+*   get:
+*     summary: Get all Parcels
+*     description: Returns all parcels. Use ?deep=true for fully populated nested trip + package.
  *     tags: [Parcels]
  *     operationId: getAllParcels
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates nested references.
  *     responses:
  *       200:
  *         description: List of parcels
@@ -285,11 +300,11 @@ export const getAllParcels = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details/{id}:
- *   get:
- *     summary: Get a Parcel by ID
- *     description: Retrieves a single parcel.
+* @swagger
+* /api/parcel-details/{id}:
+*   get:
+*     summary: Get a Parcel by ID
+*     description: Retrieves a single parcel. Use ?deep=true for fully populated nested trip + package.
  *     tags: [Parcels]
  *     operationId: getParcelById
  *     parameters:
@@ -299,6 +314,11 @@ export const getAllParcels = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Parcel ID
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates nested references.
  *     responses:
  *       200:
  *         description: Parcel found
@@ -346,11 +366,11 @@ export const getParcelById = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details/{id}:
- *   put:
- *     summary: Update a Parcel
- *     description: Partially or fully updates a parcel.
+* @swagger
+* /api/parcel-details/{id}:
+*   put:
+*     summary: Update a Parcel
+*     description: Partially updates a parcel. Use ?deep=true for deeply populated response.
  *     tags: [Parcels]
  *     operationId: updateParcel
  *     parameters:
@@ -360,6 +380,11 @@ export const getParcelById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Parcel ID
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates nested references in response.
  *     requestBody:
  *       required: true
  *       content:
@@ -415,11 +440,11 @@ export const updateParcel = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details/{id}:
- *   delete:
- *     summary: Delete a Parcel
- *     description: Permanently removes a parcel.
+* @swagger
+* /api/parcel-details/{id}:
+*   delete:
+*     summary: Delete a Parcel
+*     description: Permanently removes a parcel.
  *     tags: [Parcels]
  *     operationId: deleteParcel
  *     parameters:
@@ -465,11 +490,11 @@ export const deleteParcel = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details/update-status:
- *   post:
- *     summary: Update Parcel Status
- *     description: Updates parcel status in lifecycle.
+* @swagger
+* /api/parcel-details/update-status:
+*   post:
+*     summary: Update Parcel Status
+*     description: Updates parcel status in lifecycle.
  *     tags: [Parcels]
  *     operationId: updateParcelStatus
  *     requestBody:
@@ -514,11 +539,11 @@ export const updateParcelStatus = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details/verify-otp:
- *   post:
- *     summary: Verify Parcel Collection OTP
- *     description: Confirms parcel pickup by matching OTP then sets status to received.
+* @swagger
+* /api/parcel-details/verify-otp:
+*   post:
+*     summary: Verify Parcel Collection OTP
+*     description: Confirms parcel pickup by matching OTP then sets status to received.
  *     tags: [Parcels]
  *     operationId: verifyParcelOtp
  *     requestBody:
@@ -570,11 +595,11 @@ export const verifyParcelOtp = async (req: Request, res: Response) => {
 };
 
 /**
- * @swagger
- * /api/parcel-details/move-leg:
- *   post:
- *     summary: Move a Parcel to another Trip leg
- *     description: Updates parcel legIndex (and optionally its trip) to reflect movement between legs.
+* @swagger
+* /api/parcel-details/move-leg:
+*   post:
+*     summary: Move a Parcel to another Trip leg
+*     description: Updates parcel legIndex (and optionally its trip) to reflect movement between legs. Use ?deep=true for deeply populated response.
  *     tags: [Parcels]
  *     operationId: moveParcelLeg
  *     requestBody:
@@ -591,9 +616,16 @@ export const verifyParcelOtp = async (req: Request, res: Response) => {
  *               legIndex:
  *                 type: integer
  *                 minimum: 0
+*                 description: Zero-based index of target leg within the trip route.
  *             required:
  *               - parcelId
  *               - legIndex
+*     parameters:
+*       - in: query
+*         name: deep
+*         schema:
+*           type: boolean
+*         description: If true, deeply populates nested references in response.
  *     responses:
  *       200:
  *         description: Parcel leg updated
