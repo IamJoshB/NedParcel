@@ -115,6 +115,18 @@ import PossibleRoute from "../models/possible-routes.model";
  *         farePrice:
  *           type: number
  *           example: 25.5
+ *         price:
+ *           type: number
+ *           example: 40
+ *           description: Package movement price between ranks.
+ *         driverSplit:
+ *           type: number
+ *           example: 30
+ *           description: Percentage/share for driver revenue allocation.
+ *         associationSplit:
+ *           type: number
+ *           example: 70
+ *           description: Percentage/share for association revenue allocation.
  *         distance:
  *           type: number
  *           example: 12.3
@@ -122,6 +134,7 @@ import PossibleRoute from "../models/possible-routes.model";
  *         - taxiRankId
  *         - destinationRankId
  *         - farePrice
+ *         - price
  *         - distance
  *     UnlinkDestinationRequest:
  *       type: object
@@ -493,7 +506,7 @@ export const deleteTaxiRank = async (req: Request, res: Response) => {
 // Link a destination TaxiRank
 export const linkDestinationRank = async (req: Request, res: Response) => {
   try {
-    const { taxiRankId, destinationRankId, farePrice, distance } = req.body;
+    const { taxiRankId, destinationRankId, farePrice, distance, price, driverSplit, associationSplit } = req.body;
 
     // Validate base rank
     const baseRank = await TaxiRank.findById(taxiRankId);
@@ -506,6 +519,9 @@ export const linkDestinationRank = async (req: Request, res: Response) => {
     // Create route
     const route = new PossibleRoute({
       farePrice,
+      price,
+      driverSplit: driverSplit ?? 0,
+      associationSplit: associationSplit ?? 0,
       distance,
       fromRank: taxiRankId,
       toRank: destinationRankId,
