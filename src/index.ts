@@ -14,7 +14,7 @@ import packageTypesRoutes from "./routes/package-types.routes";
 import parcelDetailsRoutes from "./routes/parcel-details.routes";
 import swaggerDocs from "./swagger/swagger";
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 const ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || "*")
   .split(",")
   .map((s) => s.trim())
