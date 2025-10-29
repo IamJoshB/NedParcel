@@ -18,6 +18,9 @@ import Route from "../models/possible-routes.model";
  *       properties:
  *         _id:
  *           $ref: '#/components/schemas/ObjectId'
+ *         farePrice:
+ *           type: number
+ *           example: 25.5
  *         distance:
  *           type: number
  *           example: 12.5
@@ -32,12 +35,15 @@ import Route from "../models/possible-routes.model";
  *           type: string
  *           format: date-time
  *       required:
+ *         - farePrice
  *         - distance
  *         - fromRank
  *         - toRank
  *     CreateRouteRequest:
  *       type: object
  *       properties:
+ *         farePrice:
+ *           type: number
  *         distance:
  *           type: number
  *         fromRank:
@@ -45,6 +51,7 @@ import Route from "../models/possible-routes.model";
  *         toRank:
  *           $ref: '#/components/schemas/ObjectId'
  *       required:
+ *         - farePrice
  *         - distance
  *         - fromRank
  *         - toRank
@@ -52,6 +59,8 @@ import Route from "../models/possible-routes.model";
  *       type: object
  *       description: Partial update for a route.
  *       properties:
+ *         farePrice:
+ *           type: number
  *         distance:
  *           type: number
  *         fromRank:
@@ -91,7 +100,8 @@ import Route from "../models/possible-routes.model";
  *         message:
  *           type: string
  *         error:
- *           description: Additional error detail
+ *           type: string
+ *           description: Optional additional error detail (debug / tracing)
  *       required:
  *         - message
  */
@@ -101,7 +111,7 @@ import Route from "../models/possible-routes.model";
  * /api/possible-routes:
  *   post:
  *     summary: Create a Route
- *     description: Creates a possible route between two taxi ranks.
+ *     description: Creates a possible route between two taxi ranks. Reverse routes are not auto-created; create a second route with swapped ranks for a two-way connection.
  *     tags: [Routes]
  *     operationId: createRoute
  *     requestBody:
@@ -145,9 +155,15 @@ export const createRoute = async (req: Request, res: Response) => {
  * /api/possible-routes:
  *   get:
  *     summary: Get all Routes
- *     description: Returns all possible routes with populated ranks.
+ *     description: Returns all possible routes with populated ranks. Use ?shallow=true to omit rank population for performance.
  *     tags: [Routes]
  *     operationId: getAllRoutes
+ *     parameters:
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits population of fromRank and toRank.
  *     responses:
  *       200:
  *         description: List of routes
@@ -178,7 +194,7 @@ export const getAllRoutes = async (_req: Request, res: Response) => {
  * /api/possible-routes/{id}:
  *   get:
  *     summary: Get a Route by ID
- *     description: Retrieves a route with populated ranks.
+ *     description: Retrieves a route. Use ?shallow=true to omit rank population.
  *     tags: [Routes]
  *     operationId: getRouteById
  *     parameters:
@@ -188,6 +204,11 @@ export const getAllRoutes = async (_req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Route ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits population of fromRank and toRank.
  *     responses:
  *       200:
  *         description: Route found
@@ -225,7 +246,7 @@ export const getRouteById = async (req: Request, res: Response) => {
  * /api/possible-routes/{id}:
  *   put:
  *     summary: Update a Route
- *     description: Partially or fully updates a route.
+ *     description: Partially updates a route. Use ?shallow=true to omit rank population in response.
  *     tags: [Routes]
  *     operationId: updateRoute
  *     parameters:
@@ -235,6 +256,11 @@ export const getRouteById = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Route ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits population of fromRank and toRank.
  *     requestBody:
  *       required: true
  *       content:
@@ -291,6 +317,11 @@ export const updateRoute = async (req: Request, res: Response) => {
  *         schema:
  *           $ref: '#/components/schemas/ObjectId'
  *         description: Route ID
+ *       - in: query
+ *         name: shallow
+ *         schema:
+ *           type: boolean
+ *         description: If true, omits population (useful when client only needs confirmation).
  *     responses:
  *       200:
  *         description: Route deleted
