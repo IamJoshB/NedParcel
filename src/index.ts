@@ -18,7 +18,7 @@ const app = express();
 
 connectDB();
 app.use(express.json());
-app.use("/api/routes", possibleRoutes);
+app.use("/api/possible-routes", possibleRoutes);
 
 app.use("/api/banking-details", bankingDetailsRoutes);
 app.use("/api/driver-details", driverDetailsRoutes);
